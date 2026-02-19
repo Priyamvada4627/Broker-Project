@@ -1,4 +1,4 @@
-🏠 Broker Platform Backend
+🏠 Broker Project Backend
 FastAPI • PostgreSQL • Clean Architecture • JWT Auth • Alembic
 
 A production-style backend system for a property brokerage platform built using FastAPI and PostgreSQL, designed with service separation, role-based authentication, and scalable architecture principles.
@@ -6,95 +6,96 @@ A production-style backend system for a property brokerage platform built using 
 This project demonstrates backend engineering fundamentals including API design, database modeling, authentication, migration management, and business logic isolation.
 
 🚀 Core Capabilities
+
 🔐 Authentication & Authorization
 
-JWT-based authentication
-
-Token expiration handling
-
-Role-based separation (Customer / Agent)
-
-Secure password hashing
+-JWT-based authentication
+-Token expiration handling
+-Role-based separation (Customer / Agent)
+-Secure password hashing
 
 🏘 Property Management
 
-Property creation & listing
-
-Ownership-based access control
-
-Availability tracking
+-Property creation & listing
+-Ownership-based access control
+-Availability tracking
 
 💰 Bidding & Deal System
 
-Bid placement logic
-
-Status-based deal lifecycle
-
-Unique constraint enforcement (interest/deal consistency)
-
-Commission-based pricing logic
+-Bid placement logic
+-Status-based deal lifecycle
+-Unique constraint enforcement (interest)
+-Commission-based pricing logic
 
 🧠 Agent Commission Engine
 
-Centralized agent service
-
-Configurable fee percentage
-
-Isolated pricing logic (service layer abstraction)
+-Centralized agent service
+-Configurable fee percentage
+-Isolated pricing logic (service layer abstraction)
 
 🏗 Architecture Overview
 
 The project follows a layered backend architecture:
 
-Client
-  ↓
-Routers (API Layer)
-  ↓
-Services (Business Logic Layer)
-  ↓
-Models (ORM Layer)
-  ↓
-PostgreSQL Database
+                   Client
+                     ↓
+               Routers (API Layer)
+                     ↓
+            Services (Business Logic Layer)
+                     ↓
+                Models (ORM Layer)
+                     ↓
+               PostgreSQL Database
 
 Why this structure?
 
-Routers → Handle HTTP layer only
+-Routers → Handle HTTP layer only
 
-Services → Contain core business logic
+-Services → Contain core business logic
 
-Models → Database structure
+-Models → Database structure
 
-Schemas → Request/Response validation
+-Schemas → Request/Response validation
 
-Config → Environment-based settings
+-Config → Environment-based settings
 
-Alembic → Version-controlled schema evolution
+-Alembic → Version-controlled schema evolution
 
 This separation ensures:
 
-Scalability
+1.Scalability
 
-Clean testing boundaries
+2.Clean testing boundaries
 
-Business logic isolation
+3.Business logic isolation
 
-Maintainability
+4.Maintainability
 
 🛠 Technology Stack
-Layer	Technology
-API Framework	FastAPI
-Database	PostgreSQL
-ORM	SQLAlchemy
-Migrations	Alembic
-Auth	JWT
-Validation	Pydantic
-Server	Uvicorn
+-Layer	Technology
+-API Framework	FastAPI
+-Database	PostgreSQL
+-ORM	SQLAlchemy
+-Migrations	Alembic
+-Auth	JWT
+-Validation	Pydantic
+-Server	Uvicorn
 📂 Project Structure
 backend/
 │
 ├── routers/          # API endpoints
+           |── auth.py
+           |── bid.py
+           |── property.py
+           |── user.py
 ├── services/         # Business logic
+           |── agent.py
+           |── deal.py
+           |── pricing.py
 ├── schemas/          # Request/response validation
+           |── bid.py
+           |── property.py
+           |── user.py
 ├── models.py         # Database models
 ├── database.py       # DB connection setup
 ├── config.py         # Environment configuration
@@ -144,52 +145,53 @@ http://127.0.0.1:8000/docs
 
 📊 Database Design Thinking
 
-Separate Agent entity for commission control
+-Separate Agent entity for commission control
 
-Unique constraints to prevent duplicate deals
+-Unique constraints to prevent duplicate deals
 
-Foreign-key relationships for ownership integrity
+-Foreign-key relationships for ownership integrity
 
-Migration-based schema control for version safety
+-Migration-based schema control for version safety
 
-Alembic ensures:
+-Alembic ensures:
 
-Schema reproducibility
+-Schema reproducibility
 
-Controlled upgrades/downgrades
+-Controlled upgrades/downgrades
 
-Production-ready migration workflow
+-Production-ready migration workflow
 
 🔎 Engineering Highlights
 
-Clean separation between business logic and routing
+-Clean separation between business logic and routing
 
-Config-driven environment management
+-Config-driven environment management
 
-Scalable service layer pattern
+-Scalable service layer pattern
 
-JWT authentication best practices
+-JWT authentication best practices
 
-Database constraints to enforce business rules
+-Database constraints to enforce business rules
 
-Migration-first database evolution
+-Migration-first database evolution
 
 📈 Future Improvements
 
-Multi-agent support
+-Multi-agent support
 
-Redis caching layer
+-Redis caching layer
 
-Dockerized deployment
+-Dockerized deployment
 
-CI/CD pipeline integration
+-CI/CD pipeline integration
 
-Unit & integration test coverage
+-Unit & integration test coverage
 
-Async database optimization
+-Async database optimization
 
 👩‍💻 Author
 
 Priyamvada Singh
 Backend Developer | Engineering Student
 GitHub: https://github.com/Priyamvada4627
+

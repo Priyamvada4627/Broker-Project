@@ -1,125 +1,48 @@
-🏠 Broker Project Backend
-FastAPI • PostgreSQL • Clean Architecture • JWT Auth • Alembic
+# 🏠 Broker Project
 
-A production-style backend system for a property brokerage platform built using FastAPI and PostgreSQL, designed with service separation, role-based authentication, and scalable architecture principles.
+A production-style property brokerage backend built with **FastAPI** and **PostgreSQL**, featuring a complete interest-to-deal lifecycle, agent assignment, document verification, and role-based access control.
 
-This project demonstrates backend engineering fundamentals including API design, database modeling, authentication, migration management, and business logic isolation.
+---
 
-🚀 Core Capabilities
+## 🚀 Tech Stack
 
-🔐 Authentication & Authorization
+| Layer | Technology |
+|---|---|
+| API Framework | FastAPI |
+| Database | PostgreSQL |
+| ORM | SQLAlchemy |
+| Migrations | Alembic |
+| Auth | JWT (python-jose) |
+| Validation | Pydantic V2 |
+| Server | Uvicorn |
+| Scheduler | APScheduler |
 
--JWT-based authentication
--Token expiration handling
--Role-based separation (Customer / Agent)
--Secure password hashing
+---
 
-🏘 Property Management
+## ⚙️ Setup
 
--Property creation & listing
--Ownership-based access control
--Availability tracking
-
-💰 Bidding & Deal System
-
--Bid placement logic
--Status-based deal lifecycle
--Unique constraint enforcement (interest)
--Commission-based pricing logic
-
-🧠 Agent Commission Engine
-
--Centralized agent service
--Configurable fee percentage
--Isolated pricing logic (service layer abstraction)
-
-🏗 Architecture Overview
-
-The project follows a layered backend architecture:
-
-                   Client
-                     ↓
-               Routers (API Layer)
-                     ↓
-            Services (Business Logic Layer)
-                     ↓
-                Models (ORM Layer)
-                     ↓
-               PostgreSQL Database
-
-Why this structure?
-
--Routers → Handle HTTP layer only
-
--Services → Contain core business logic
-
--Models → Database structure
-
--Schemas → Request/Response validation
-
--Config → Environment-based settings
-
--Alembic → Version-controlled schema evolution
-
-This separation ensures:
-
-1.Scalability
-
-2.Clean testing boundaries
-
-3.Business logic isolation
-
-4.Maintainability
-
-🛠 Technology Stack
--Layer	Technology
--API Framework	FastAPI
--Database	PostgreSQL
--ORM	SQLAlchemy
--Migrations	Alembic
--Auth	JWT
--Validation	Pydantic
--Server	Uvicorn
-📂 Project Structure
-backend/
-│
-├── routers/          # API endpoints
-           |── auth.py
-           |── bid.py
-           |── property.py
-           |── user.py
-├── services/         # Business logic
-           |── agent.py
-           |── deal.py
-           |── pricing.py
-├── schemas/          # Request/response validation
-           |── bid.py
-           |── property.py
-           |── user.py
-├── models.py         # Database models
-├── database.py       # DB connection setup
-├── config.py         # Environment configuration
-└── main.py           # Application entrypoint
-
-alembic/
-└── versions/         # Migration history
-
-⚙️ Setup Guide
-1️⃣ Clone Repository
+### 1. Clone the repository
+```bash
 git clone https://github.com/Priyamvada4627/Broker-Project.git
 cd Broker-Project
+```
 
-2️⃣ Create Virtual Environment
+### 2. Create and activate virtual environment
+```bash
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
+```
 
-3️⃣ Install Dependencies
+### 3. Install dependencies
+```bash
 pip install -r requirements.txt
+```
 
-4️⃣ Configure Environment Variables
+### 4. Configure environment variables
 
-Create a .env file:
-
+Create a `.env` file in the project root:
+```env
 DATABASE_HOSTNAME=localhost
 DATABASE_PORT=5432
 DATABASE_USERNAME=postgres
@@ -128,70 +51,296 @@ DATABASE_NAME=your_database
 SECRET_KEY=your_secret_key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
 
-
-⚠️ .env is excluded via .gitignore.
-
-5️⃣ Apply Migrations
+### 5. Apply migrations
+```bash
 alembic upgrade head
+```
 
-6️⃣ Run Application
+### 6. Seed the default agent
+
+Run the seed script to create the default platform agent with a properly hashed password:
+```bash
+python -m backend.seed
+```
+
+This creates:
+- User: `agent@platform.com` / password: `securepassword`
+- Default agent with `fee_percent=2.0`, `min_fee=1000`, `max_fee=50000`
+
+### 7. Run the server
+```bash
 uvicorn backend.main:app --reload
+```
 
+API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-API Docs:
+---
 
-http://127.0.0.1:8000/docs
+## 🏗️ Architecture
 
-📊 Database Design Thinking
+```
+Client
+  ↓
+Routers (API Layer)       — HTTP handling, request validation
+  ↓
+Services (Business Logic) — pricing, deal creation, agent assignment
+  ↓
+Models (ORM Layer)        — SQLAlchemy models
+  ↓
+PostgreSQL Database
+```
 
--Separate Agent entity for commission control
+---
 
--Unique constraints to prevent duplicate deals
+## 📂 Project Structure
 
--Foreign-key relationships for ownership integrity
+```
+backend/
+├── routers/
+│   ├── auth.py          # Login
+│   ├── user.py          # Registration, profile
+│   ├── property.py      # Property CRUD + update
+│   ├── bid.py           # Interest & negotiation
+│   ├── deal.py          # Deal retrieval
+│   ├── document.py      # Document upload & verification
+│   └── agent.py         # Agent registration & property verification
+├── services/
+│   ├── agent.py         # Agent assignment with load balancing
+│   ├── deal.py          # Deal creation logic
+│   └── pricing.py       # Fee computation
+├── schemas/
+│   ├── user.py
+│   ├── property.py
+│   ├── bid.py
+│   └── deal.py
+├── models.py            # All database models
+├── database.py          # DB connection
+├── oauth2.py            # JWT auth + role guards
+├── utils.py             # Password hashing
+├── config.py            # Environment config
+├── seed.py              # Default agent seeder
+└── main.py              # App entrypoint + scheduler
+```
 
--Migration-based schema control for version safety
+---
 
--Alembic ensures:
+## 🔄 System Flow
 
--Schema reproducibility
+### Property Verification Cycle
+```
+Seller posts property
+        ↓
+System sets verification_deadline = now + 10 days
+        ↓
+Agent reviews property
+        ↓
+Agent: verified → property is live
+Agent: changes_required → seller gets remarks, deadline resets to 5 days
+        ↓
+If not verified before deadline → auto deleted by scheduler
+```
 
--Controlled upgrades/downgrades
+### Interest Cycle
+```
+Seller posts property
+        ↓
+Buyer creates interest (bid_amount optional)
+        ↓
+Seller: accept_bid | counter | reject
+        ↓
+Buyer: accept_counter | reject_counter | withdraw
+        ↓
+Deal auto-created when interest is accepted/agreed
+All other interests on that property → rejected
+Property marked unavailable
+```
 
--Production-ready migration workflow
+### Deal Cycle
+```
+Deal created
+        ↓
+Buyer & Seller upload documents (file URL)
+        ↓
+Agent verifies each document → verified | rejected
+        ↓
+If rejected → seller/buyer gets rejection notes + 7 days to re-upload
+If not re-uploaded in 7 days → deal cancelled by scheduler
+        ↓
+All verified → deal status: documents_verified
+        ↓
+Payment → completed  (in progress)
+```
 
-🔎 Engineering Highlights
+---
 
--Clean separation between business logic and routing
+## 📌 API Endpoints
 
--Config-driven environment management
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/login` | Get JWT token |
 
--Scalable service layer pattern
+### Users
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/users/register` | Register as customer |
+| GET | `/users/me` | Get own profile |
 
--JWT authentication best practices
+### Agents
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/agents/register` | Create new agent (agent only) |
+| PATCH | `/agents/verify/property/{id}?action=verified` | Verify a property listing |
+| PATCH | `/agents/verify/property/{id}?action=changes_required&remarks=...` | Request changes on property |
 
--Database constraints to enforce business rules
+### Properties
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/properties/all` | Browse all properties (with filters) |
+| GET | `/properties/my` | Seller views own listings |
+| GET | `/properties/{id}` | Single property detail |
+| POST | `/properties/add` | Add new property |
+| PATCH | `/properties/{id}` | Update property (resets verification) |
 
--Migration-first database evolution
+### Interests / Bids
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/bid/{property_id}` | Create interest |
+| PATCH | `/bid/{interest_id}` | Take action on interest |
+| GET | `/bid/buyer` | Buyer views their interests |
+| GET | `/bid/seller` | Seller views interests on their properties |
 
-📈 Future Improvements
+#### Interest Actions
+- **Buyer**: `withdraw`, `accept_counter`, `reject_counter`
+- **Seller**: `accept_bid`, `counter`, `reject`
 
--Multi-agent support
+### Deals
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/deals/my` | View own deals |
 
--Redis caching layer
+### Documents
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/deals/{deal_id}/documents?document_type=...&file_url=...` | Upload document |
+| PATCH | `/deals/{deal_id}/documents/{doc_id}/verify?status=verified` | Agent verifies document |
+| PATCH | `/deals/{deal_id}/documents/{doc_id}/verify?status=rejected&notes=...` | Agent rejects document |
+| GET | `/deals/{deal_id}/documents` | View all documents for a deal |
 
--Dockerized deployment
+---
 
--CI/CD pipeline integration
+## 🗄️ Database Models
 
--Unit & integration test coverage
+### User
+`id, email, password, phone, role, created_at`
+- `role` is always `"customer"` on registration — cannot be set by user
+- Agents have `role="agent"` set internally
 
--Async database optimization
+### Location
+`id, city, state, pincode`
 
-👩‍💻 Author
+### Property
+`id, description, location_id, price, property_type, purpose, is_available, is_verified, verified_by, verification_status, remarks, verification_deadline, is_modified, seller_id, agent_id, created_at`
+- `verification_status`: `pending | verified | changes_required`
+- `verification_deadline`: set to `now + 10 days` on creation, resets to `now + 5 days` on modification
+- `is_modified`: set to `True` when seller edits after submission — visible to agent
 
-Priyamvada Singh
+### Agent
+`id, user_id, name, city, fee_percent, min_fee, max_fee, created_at`
+
+### Interest
+`id, property_id, buyer_id, bid_amount, counter_amount, message, agent_id, status, created_at`
+- Unique constraint on `(buyer_id, property_id)`
+- Status: `pending → countered → accepted/agreed/rejected/withdrawn`
+
+### Deal
+`id, interest_id, buyer_id, seller_id, property_id, agent_id, seller_price, agent_fee, final_price, status, created_at`
+- Status: `created → documents_pending → documents_verified → payment_pending → completed | cancelled`
+
+### DealDocument
+`id, deal_id, document_type, status, uploaded_by, file_url, verified_by, notes, reupload_deadline, created_at`
+- Status: `pending | verified | rejected`
+- `reupload_deadline`: set to `now + 7 days` on rejection
+
+---
+
+## 🔐 Security
+
+- JWT-based authentication on all protected routes
+- `role="customer"` hardcoded on registration — users cannot self-assign roles
+- Agents can only be created by existing agents
+- `require_agent` dependency guards all agent-only endpoints
+- Seller cannot bid on their own property
+- Buyer cannot create duplicate interests on the same property
+- Only the assigned agent for a property can verify it
+- Only a deal's assigned agent can verify its documents
+- Only the buyer/seller of a deal can upload documents
+- Cannot upload a new document if one of the same type is already pending/verified
+
+---
+
+## ⏰ Automated Scheduler (APScheduler)
+
+Runs two background jobs every 24 hours:
+
+**1. Delete expired properties:**
+- Finds all unverified properties past their `verification_deadline`
+- Deletes them automatically
+
+**2. Cancel deals with expired document deadlines:**
+- Finds all rejected documents past their `reupload_deadline`
+- Marks the corresponding deal as `cancelled`
+
+---
+
+## 💰 Pricing Logic
+
+Agent fee is computed as a percentage of the negotiated price, bounded by `min_fee` and `max_fee`:
+
+```
+agent_fee = price × fee_percent / 100
+agent_fee = max(min_fee, min(agent_fee, max_fee))
+
+buyer_pays  = negotiated_price + agent_fee
+seller_gets = negotiated_price - agent_fee
+```
+
+---
+
+## 🤖 Agent Assignment
+
+When an interest is created, an agent is assigned based on the property's city:
+- Finds all agents covering that city
+- Assigns the one with the **fewest active deals** (load balancing)
+- Falls back to the default agent if no city match found
+- The same agent follows the interest through to the deal
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Property verification with remarks and deadline
+- [x] Auto-deletion of expired unverified properties
+- [x] Update property (resets verification + extends deadline)
+- [x] Document rejection with re-upload deadline
+- [x] Auto-cancellation of deals with expired document deadlines
+- [ ] Agent dashboard (assigned properties, deals, pending documents)
+- [ ] Rent-specific deal structure (monthly amount, deposit, duration)
+- [ ] Payment stage and deal completion
+- [ ] File storage via AWS S3 or Cloudinary
+- [ ] ML-based property price prediction
+- [ ] Redis caching
+- [ ] Docker setup
+- [ ] Unit and integration tests
+
+---
+
+## 👩‍💻 Author
+
+**Priyamvada Singh**
 Backend Developer | Engineering Student
-GitHub: https://github.com/Priyamvada4627
+GitHub: [https://github.com/Priyamvada4627](https://github.com/Priyamvada4627)
+
 

@@ -1,12 +1,33 @@
 from pydantic import BaseModel
 from datetime import datetime
 from backend.schemas.bid import SellerInterestOut
+from enum import Enum
+from typing import Optional
+
+class PropertyPurpose(str, Enum):
+    buy = "buy"
+    rent = "rent"
+
+class PropertyType(str, Enum):
+    apartment = "apartment"
+    house = "house"
+    flat="flat"
+    plot = "plot"
+    commercial = "commercial"
+
+class LocationIn(BaseModel):
+    city: str
+    state: str
+    pincode: str
+
 class PropertyIn(BaseModel):
     description: str
-    location: str
+    city: str
+    state: str
+    pincode: str
     price: int
-    property_type: str
-    purpose: str
+    property_type: PropertyType
+    purpose: PropertyPurpose
     is_available: bool = True
 
 class SellerInterest(BaseModel):
@@ -19,11 +40,17 @@ class SellerInterest(BaseModel):
     class Config:
         from_attributes = True
 
+class LocationOut(BaseModel):
+    city: str
+    state: str
+    pincode: str
 
+    class Config:
+        from_attributes = True
 
 class SellerPropertyOut(BaseModel):
     id: int
-    location: str
+    location: LocationOut
     price: int
     property_type: str
     purpose: str
@@ -43,5 +70,10 @@ class BuyerPropertyOut(BaseModel):
     is_available: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+class PropertyUpdate(BaseModel):
+    price: Optional[int] = None
+    description: Optional[str] = None
+    property_type: Optional[PropertyType] = None
+    purpose: Optional[PropertyPurpose] = None

@@ -27,7 +27,9 @@ def create_interest(
 
     if not property or not property.is_available:
         raise HTTPException(status_code=404, detail="Property not available")
-    agent=get_platform_agent(db)
+    if property.seller_id == current_user.id:
+        raise HTTPException(status_code=403, detail="You cannot bid on your own property")
+    agent=agent=db.query(models.Agent).filter(models.Agent.id==property.agent_id).first()
     new_interest = models.Interest(
         property_id=property_id,
         buyer_id=current_user.id,
@@ -70,13 +72,12 @@ def update_interest(
 
     if not property_obj:
         raise HTTPException(404, "Property not found")
- 
+
     if interest.status in ("accepted", "agreed", "rejected", "withdrawn"):
         raise HTTPException(
-        status_code=400,
-        detail="Interest is finalized and cannot be modified"
+            status_code=400,
+            detail="Interest is finalized and cannot be modified"
         )
-
 
     # ---------------- BUYER ACTIONS ----------------
     if payload.action in ("withdraw", "accept_counter", "reject_counter"):
@@ -84,7 +85,7 @@ def update_interest(
             raise HTTPException(403, "Not allowed")
 
         if payload.action == "withdraw":
-            if interest.status not in ["pending","countered"]:
+            if interest.status not in ["pending", "countered"]:
                 raise HTTPException(400, "Cannot withdraw now")
             interest.status = "withdrawn"
 
@@ -104,8 +105,13 @@ def update_interest(
             raise HTTPException(403, "Not allowed")
 
         if payload.action == "accept_bid":
+            
             if interest.status != "pending":
                 raise HTTPException(400, "Cannot accept now")
+   
+            if interest.bid_amount is None:
+                raise HTTPException(400, "Cannot accept a bid with no bid amount")
+
             interest.status = "accepted"
 
         elif payload.action == "counter":
@@ -113,7 +119,6 @@ def update_interest(
                 raise HTTPException(400, "Cannot counter now")
             if payload.counter_amount is None:
                 raise HTTPException(400, "counter_amount required")
-
             interest.status = "countered"
             interest.counter_amount = payload.counter_amount
 
@@ -127,30 +132,21 @@ def update_interest(
 
     # ---------------- DEAL CREATION (ATOMIC) ----------------
     if interest.status in ("accepted", "agreed"):
-        existing = db.query(models.Deal).filter(
-            models.Deal.interest_id == interest.id
-        ).first()
+        deal.create_deal_from_interest(db, interest)  # caller must commit
 
-        if not existing:
-            
+        # Mark property unavailable
+        property_obj.is_available = False
 
-            deal.create_deal_from_interest(db, interest)
-
-            # Mark property unavailable
-            property_obj.is_available = False
-
-            # Reject all other interests
-            db.query(models.Interest).filter(
-                models.Interest.property_id == interest.property_id,
-                models.Interest.id != interest.id
-            ).update({"status": "rejected"})
+        # Reject all other interests
+        db.query(models.Interest).filter(
+            models.Interest.property_id == interest.property_id,
+            models.Interest.id != interest.id
+        ).update({"status": "rejected"})
 
     db.commit()
     db.refresh(interest)
 
     return {"status": interest.status}
-
-
 
 
 
@@ -160,7 +156,7 @@ def get_buyer_interests(
     current_user = Depends(oauth2.get_current_user),
 ):
     # 1. Default agent (id = 1)
-    agent = get_platform_agent(db)
+   
 
     # 2. Fetch buyer interests
     interests = (
@@ -169,14 +165,14 @@ def get_buyer_interests(
         .order_by(models.Interest.created_at.desc())
         .all()
     )
-
+    
     response = []
 
     for interest in interests:
         prop = db.query(models.Property).filter(
             models.Property.id == interest.property_id
         ).first()
-
+        agent=agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
         if not prop:
             continue  # safety
 
@@ -190,7 +186,7 @@ def get_buyer_interests(
             "interest_id": interest.id,
             "property_id": prop.id,
             "bid_amount": interest.bid_amount,
-            "counter_amount": interest.counter_amount+agent_fee,
+            "counter_amount": (interest.counter_amount + agent_fee) if interest.counter_amount is not None else None,
             "price_to_pay": effective_price + agent_fee,
             "status": interest.status
         })
@@ -206,8 +202,7 @@ def get_seller_interests(
     db: Session = Depends(get_db),
     current_user = Depends(oauth2.get_current_user),
 ):
-    # 1. Platform agent
-    agent = get_platform_agent(db)
+    
 
     # 2. Fetch interests on seller's properties
     interests = (
@@ -222,7 +217,7 @@ def get_seller_interests(
 
     for interest in interests:
         prop = interest.property  # already joined
-
+        agent=agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
         # 3. Seller-driven price
         effective_price = pricing.get_effective_price(prop.price, interest)
 
@@ -234,7 +229,7 @@ def get_seller_interests(
             "property_id": prop.id,
             "base_price": prop.price,
             "counter_amount": interest.counter_amount,
-            "bid_amount": interest.bid_amount-agent_fee,
+            "bid_amount": interest.bid_amount,
             "status": interest.status
         })
 

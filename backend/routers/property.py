@@ -6,7 +6,7 @@ from .. import models,oauth2
 from typing import List,Optional
 from ..services.pricing import compute_agent_fee
 from ..services.agent import get_platform_agent
-
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(
     prefix="/properties",
@@ -26,12 +26,12 @@ def get_all_property(
     current_user: int = Depends(oauth2.get_current_user)
 ):
     # Fetch default agent ONCE
-    agent = get_platform_agent(db)
+    
 
     query = db.query(models.Property)
 
     if city:
-        query = query.filter(models.Property.location.ilike(f"%{city}%"))
+        query = query.join(models.Location, models.Location.id == models.Property.location_id).filter(models.Location.city.ilike(f"%{city}%"))
 
     if purpose:
         query = query.filter(models.Property.purpose == purpose)
@@ -50,6 +50,7 @@ def get_all_property(
     response = []
 
     for prop in properties:
+        agent=db.query(models.Agent).filter(models.Agent.id==prop.agent_id).first()
         agent_fee = compute_agent_fee(prop.price, agent)
 
         response.append({
@@ -98,7 +99,7 @@ def get_property(
         )
 
     # Fetch default agent
-    agent = get_platform_agent(db)
+    agent=db.query(models.Agent).filter(models.Agent.id==prop.agent_id).first()
 
     agent_fee = compute_agent_fee(prop.price, agent)
 
@@ -108,33 +109,64 @@ def get_property(
         "price_to_pay": prop.price + agent_fee,
         "is_available": prop.is_available
     }
+from datetime import datetime, timedelta, timezone
 
-
-@router.post("/add",status_code=status.HTTP_201_CREATED,response_model=Property.SellerPropertyOut)   #schema will change
-def add_property(property:Property.PropertyIn, db: Session=Depends(get_db),current_user:int =Depends(oauth2.get_current_user) ):
-    new_property=models.Property(seller_id=current_user.id,**property.dict())
+@router.post("/add", status_code=201, response_model=Property.SellerPropertyOut)
+def add_property(
+    property: Property.PropertyIn,
+    db: Session = Depends(get_db),
+    current_user=Depends(oauth2.get_current_user)
+):
+    location = models.Location(
+        city=property.city,
+        state=property.state,
+        pincode=property.pincode
+    )
+    db.add(location)
+    db.commit()
+    db.refresh(location)
+    
+    new_property = models.Property(
+        seller_id=current_user.id,
+        location_id=location.id,
+        description=property.description,
+        price=property.price,
+        property_type=property.property_type,
+        purpose=property.purpose,
+        agent_id=get_platform_agent(db, city=location.city).id,
+        is_available=property.is_available,
+        is_modified=False,                                            
+        verification_deadline=datetime.now(timezone.utc) + timedelta(days=10)  
+    )
     db.add(new_property)
     db.commit()
     db.refresh(new_property)
-    agent = get_platform_agent(db)
 
-    agent_fee = compute_agent_fee(new_property.price, agent)
+    return new_property
 
-    return {
-        "id": new_property.id,
-        "location":new_property.location,
-        "price": new_property.price,
-        "description":new_property.description,
-        "property_type":new_property.property_type,
-        "purpose":new_property.purpose,
-        "is_available": new_property.is_available
-    }
+@router.patch("/{property_id}")
+def update_property(
+    property_id: int,
+    payload: Property.PropertyUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(oauth2.get_current_user)
+):
+    prop = db.query(models.Property).filter(models.Property.id == property_id).first()
+    
+    if not prop:
+        raise HTTPException(404, "Property not found")
+    if prop.seller_id != current_user.id:
+        raise HTTPException(403, "Not your property")
+    if prop.is_verified:
+        raise HTTPException(400, "Cannot modify a verified property")
 
+    if payload.price is not None: prop.price = payload.price
+    if payload.description is not None: prop.description = payload.description
+    if payload.property_type is not None: prop.property_type = payload.property_type
+    if payload.purpose is not None: prop.purpose = payload.purpose
+    prop.is_verified = False
+    prop.is_modified = True
+    prop.verification_deadline = datetime.now(timezone.utc) + timedelta(days=5)
 
-
-
-
-
-
-
-
+    db.commit()
+    return {"message": "Property updated, resubmitted for verification"}

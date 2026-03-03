@@ -3,6 +3,7 @@ from ..schemas import user
 from fastapi import FastAPI,Response,status,HTTPException,Depends,APIRouter
 from sqlalchemy.orm import Session
 from ..database import  get_db
+from ..oauth2 import get_current_user
 router=APIRouter(
     prefix="/users",
     tags=['Users']
@@ -21,3 +22,8 @@ def create_user(user: user.UserCreate, db: Session=Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+@router.get("/me", response_model=user.UserOut)
+def get_current_user_profile(
+    current_user=Depends(get_current_user)
+):
+    return current_user

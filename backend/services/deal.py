@@ -1,7 +1,13 @@
 from backend.models import Deal
 from backend.services.pricing import get_accepted_amount, compute_money_view
 from backend.services.agent import get_platform_agent
+from .. import models
+
 def create_deal_from_interest(db, interest):
+    """
+    Adds a Deal to the session but does NOT commit.
+    Caller is responsible for calling db.commit().
+    """
     # Guard 1: only final states
     if interest.status not in ("accepted", "agreed"):
         return None
@@ -13,10 +19,9 @@ def create_deal_from_interest(db, interest):
     if existing:
         return existing
 
-    # Get negotiated amount
     base_amount = get_accepted_amount(interest)
 
-    agent = get_platform_agent(db)
+    agent = db.query(models.Agent).filter(models.Agent.id == interest.agent_id).first()
 
     money = compute_money_view(base_amount, agent)
 
@@ -26,16 +31,10 @@ def create_deal_from_interest(db, interest):
         seller_id=interest.property.seller_id,
         property_id=interest.property_id,
         agent_id=agent.id,
-
-        # ONLY real columns
         seller_price=base_amount,
         agent_fee=money["agent_fee"],
         final_price=money["buyer_pays"],
     )
 
     db.add(deal)
-
-    # Mark property unavailable
-    interest.property.is_available = False
-
     return deal

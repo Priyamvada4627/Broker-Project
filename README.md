@@ -326,14 +326,13 @@ When an interest is created, an agent is assigned based on the property's city:
 - [x] Update property (resets verification + extends deadline)
 - [x] Document rejection with re-upload deadline
 - [x] Auto-cancellation of deals with expired document deadlines
-- [ ] Agent dashboard (assigned properties, deals, pending documents)
-- [ ] Rent-specific deal structure (monthly amount, deposit, duration)
-- [ ] Payment stage and deal completion
+- [x] Agent dashboard (assigned properties, deals, pending documents)
+- [x] Payment stage and deal completion
 - [ ] File storage via AWS S3 or Cloudinary
-- [ ] ML-based property price prediction
+- [x] ML-based property price prediction
 - [ ] Redis caching
 - [ ] Docker setup
-- [ ] Unit and integration tests
+- [x] Unit and integration tests
 
 ---
 

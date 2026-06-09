@@ -51,12 +51,13 @@ class Property(Base):
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     verification_deadline = Column(TIMESTAMP(timezone=True), nullable=True)
     is_modified = Column(Boolean, default=False)
-    # models.py
     remarks = Column(String, nullable=True)  
     verification_status = Column(String, default="pending") 
     agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
     agent_rel = relationship("Agent", foreign_keys=[agent_id])
-    
+    bedrooms = Column(Integer, nullable=True)
+    bathrooms = Column(Integer, nullable=True)
+    area = Column(Float, nullable=True)
     location = relationship("Location")
     interests = relationship("Interest", back_populates="property")
 class Interest(Base):
@@ -145,6 +146,7 @@ class DealDocument(Base):
     status = Column(String, nullable=False, default="pending")
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_url = Column(String, nullable=False)
+    cloudinary_public_id = Column(String, nullable=True)   # for deletion via Cloudinary API
     verified_by = Column(Integer, ForeignKey("agents.id"), nullable=True)
     notes = Column(String, nullable=True)
     reupload_deadline = Column(TIMESTAMP(timezone=True), nullable=True)

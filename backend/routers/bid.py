@@ -6,8 +6,8 @@ from .. import models,oauth2
 from typing import List,Optional
 from backend.services import pricing,deal
 from backend.services.agent import get_platform_agent
-
-
+from ..services.ml import predict_price
+from sqlalchemy.exc import IntegrityError
 router = APIRouter(
     prefix="/bid",
     tags=["Bid"]
@@ -38,14 +38,37 @@ def create_interest(
         agent_id=agent.id   
     )
 
-    db.add(new_interest)
-    db.commit()
-    db.refresh(new_interest)
+    
 
+    try:
+        db.add(new_interest)
+        db.commit()
+        db.refresh(new_interest)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="You have already placed a bid on this property")
+
+
+    estimate = predict_price(
+        city=property.location.city if property.location else "",
+        property_type=property.property_type.value,
+        purpose=property.purpose.value,
+        area=1000.0)
+
+    warning = None
+    if "predicted_price" in estimate and interest.bid_amount:
+        estimated = estimate["predicted_price"]
+        diff_pct = abs(interest.bid_amount - estimated) / estimated * 100
+        if diff_pct > 30:
+            warning = f"Your bid is {diff_pct:.0f}% away from the estimated fair price of ₹{estimated:,}"
+
+# then in the return:
     return {
         "message": "Interest submitted successfully",
-        "interest_id": new_interest.id
+        "interest_id": new_interest.id,
+        "ml_warning": warning   # None if bid is reasonable
     }
+   
 
 
 
@@ -155,10 +178,8 @@ def get_buyer_interests(
     db: Session = Depends(get_db),
     current_user = Depends(oauth2.get_current_user),
 ):
-    # 1. Default agent (id = 1)
    
-
-    # 2. Fetch buyer interests
+    #  Fetch buyer interests
     interests = (
         db.query(models.Interest)
         .filter(models.Interest.buyer_id == current_user.id)
@@ -176,10 +197,10 @@ def get_buyer_interests(
         if not prop:
             continue  # safety
 
-        # 3. Seller-driven price
+        #  Seller-driven price
         effective_price = pricing.get_effective_price(prop.price, interest)
 
-        # 4. Agent fee on effective price
+        #  Agent fee on effective price
         agent_fee = pricing.compute_agent_fee(effective_price, agent)
 
         response.append({
@@ -217,7 +238,7 @@ def get_seller_interests(
 
     for interest in interests:
         prop = interest.property  # already joined
-        agent=agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
+        agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
         # 3. Seller-driven price
         effective_price = pricing.get_effective_price(prop.price, interest)
 

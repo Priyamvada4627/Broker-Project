@@ -29,6 +29,9 @@ class PropertyIn(BaseModel):
     property_type: PropertyType
     purpose: PropertyPurpose
     is_available: bool = True
+    bedrooms: Optional[int] = 2
+    bathrooms: Optional[int] = 2
+    area: Optional[float] = 1000.0
 
 class SellerInterest(BaseModel):
     id: int
@@ -50,25 +53,32 @@ class LocationOut(BaseModel):
 
 class SellerPropertyOut(BaseModel):
     id: int
+    description: str
     location: LocationOut
     price: int
     property_type: str
     purpose: str
     is_available: bool
+    is_verified: bool
+    verification_status: str
+    remarks: Optional[str] = None
     interests: list[SellerInterest] = []
-
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    area: Optional[float] = None
     class Config:
         from_attributes = True
 
 
-# schemas/property.py
-
 class BuyerPropertyOut(BaseModel):
     property_id: int
     description: str
+    location: LocationOut
     price_to_pay: int
     is_available: bool
-
+    ml_estimate: Optional[int] = None       
+    ml_price_range: Optional[dict] = None   
+    ml_confidence: Optional[str] = None     
     class Config:
         from_attributes = True
 

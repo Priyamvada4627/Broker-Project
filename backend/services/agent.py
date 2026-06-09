@@ -1,5 +1,3 @@
-from sqlalchemy.orm import Session
-from backend import models
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func

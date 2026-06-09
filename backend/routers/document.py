@@ -1,33 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from .. import models, oauth2
 from ..database import get_db
-from typing import Optional,Literal,List
-from pydantic import BaseModel
+from ..services.cloudinary_service import upload_verification_file, delete_verification_file
+from typing import Optional
 from datetime import datetime, timedelta, timezone
-
-
+import os
 
 router = APIRouter(
     prefix="/deals",
     tags=["Documents"]
 )
 
+# 10 MB limit for uploaded verification files
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
-class DocumentUpload(BaseModel):
-    document_type: str
-    file_url: str
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
 
-class DocumentVerify(BaseModel):
-    status: str  # verified | rejected
-    notes: Optional[str] = None
 
-
-@router.post("/{deal_id}/documents")
-def upload_document(
+@router.post("/{deal_id}/documents", status_code=201)
+async def upload_document(
     deal_id: int,
-    document_type: str,
-    file_url: str,
+    document_type: str = Form(...),
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user=Depends(oauth2.get_current_user)
 ):
@@ -35,34 +35,56 @@ def upload_document(
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
-    # only buyer or seller can upload
     if current_user.id not in (deal.buyer_id, deal.seller_id):
         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    # Check if there's already a pending/verified doc of same type
+
+    # Validate MIME type
+    if file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{file.content_type}'. Allowed: PDF, JPEG, PNG, WEBP."
+        )
+
+    # Check for existing pending/verified doc of same type
     existing = db.query(models.DealDocument).filter(
         models.DealDocument.deal_id == deal_id,
-        models.DealDocument.document_type == document_type,  # ← payload.document_type → document_type
+        models.DealDocument.document_type == document_type,
         models.DealDocument.status.in_(["pending", "verified"])
     ).first()
-    if existing:  # ← fixed indentation
+    if existing:
         raise HTTPException(400, "Document of this type already exists")
+
+    # Read file and enforce size limit
+    file_bytes = await file.read()
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10 MB.")
+
+    # Build a clean filename: <document_type>_<user_id>.<ext>
+    ext = os.path.splitext(file.filename or "")[1] or ".bin"
+    clean_filename = f"{document_type}_{current_user.id}{ext}"
+
+    # Upload to Cloudinary
+    try:
+        upload_result = upload_verification_file(file_bytes, clean_filename, deal_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"File upload failed: {str(e)}")
 
     doc = models.DealDocument(
         deal_id=deal_id,
         document_type=document_type,
-        file_url=file_url,
+        file_url=upload_result["url"],
+        cloudinary_public_id=upload_result["public_id"],
         uploaded_by=current_user.id
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
 
-    return {"message": "Document uploaded", "document_id": doc.id}
-
-
-
-
+    return {
+        "message": "Document uploaded",
+        "document_id": doc.id,
+        "file_url": doc.file_url
+    }
 
 
 @router.patch("/{deal_id}/documents/{document_id}/verify")
@@ -85,44 +107,48 @@ def verify_document(
     if deal.agent_id != agent.id:
         raise HTTPException(status_code=403, detail="Not your deal")
 
-    if status not in ("verified", "rejected"):
-        raise HTTPException(status_code=400, detail="Invalid status")
-
     doc = db.query(models.DealDocument).filter(
         models.DealDocument.id == document_id,
         models.DealDocument.deal_id == deal_id
     ).first()
-
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+
+    if status not in ["verified", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
 
     if status == "verified":
         doc.status = "verified"
         doc.verified_by = agent.id
         doc.notes = notes
-        doc.reupload_deadline = None  # clear any previous deadline
-
-    elif status == "rejected":
+        doc.reupload_deadline = None
+    else:
         if not notes:
-            raise HTTPException(status_code=400, detail="notes required when rejecting a document")
+            raise HTTPException(
+                status_code=400,
+                detail="notes required when rejecting a document"
+            )
         doc.status = "rejected"
         doc.verified_by = agent.id
-        doc.notes = notes  # rejection reason for buyer/seller
+        doc.notes = notes
         doc.reupload_deadline = datetime.now(timezone.utc) + timedelta(days=7)
-        deal.status = "documents_pending"  # reset deal status
+        deal.status = "documents_pending"
 
     db.flush()
 
-    # only check if all verified when no rejection happened
     if status == "verified":
-        all_docs = db.query(models.DealDocument).filter(
+        docs = db.query(models.DealDocument).filter(
             models.DealDocument.deal_id == deal_id
         ).all()
+        latest_docs = {}
+        for d in docs:
+            latest_docs[d.document_type] = d
 
-        if all(d.status == "verified" for d in all_docs):
+        if all(d.status == "verified" for d in latest_docs.values()):
             deal.status = "documents_verified"
 
     db.commit()
+    db.refresh(deal)
 
     return {
         "message": f"Document {status}",
@@ -131,8 +157,6 @@ def verify_document(
         "notes": doc.notes,
         "reupload_deadline": doc.reupload_deadline
     }
-
-
 
 
 @router.get("/{deal_id}/documents")
@@ -145,7 +169,6 @@ def get_deal_documents(
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
-    # only buyer, seller or assigned agent can view
     agent = db.query(models.Agent).filter(models.Agent.user_id == current_user.id).first()
     agent_id = agent.id if agent else None
 

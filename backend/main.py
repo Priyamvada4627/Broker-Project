@@ -6,7 +6,8 @@ from .services.ml import load_models
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timezone
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -113,6 +114,8 @@ scheduler.add_job(retrain_ml_models, 'interval', hours=24)
 scheduler.start()
 
 
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+
 @app.get("/")
-def root():
-    return {"message": "Broker project running"}
+def home():
+    return FileResponse("frontend/index.html")

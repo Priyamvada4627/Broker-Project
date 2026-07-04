@@ -122,3 +122,8 @@ scheduler.add_job(retrain_ml_models, 'interval', hours=24)
 scheduler.start()
 
 
+
+@app.get("/")
+def home():
+    return {"status": "ok", "service": "backend API"}
+

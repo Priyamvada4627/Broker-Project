@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from .database import engine, SessionLocal
 from . import models
@@ -8,11 +9,19 @@ from datetime import datetime, timezone
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+
 app = FastAPI()
+
+# Comma-separated list of allowed frontend origins, e.g.
+#   ALLOWED_ORIGINS=https://your-app.vercel.app,http://localhost:3000
+# Falls back to "*" (any origin) if not set.
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+origins = [o.strip() for o in _allowed_origins.split(",")] if _allowed_origins != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # later restrict
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False,  # we use Bearer tokens, not cookies, so this can stay False
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -114,8 +123,17 @@ scheduler.add_job(retrain_ml_models, 'interval', hours=24)
 scheduler.start()
 
 
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+# The frontend now lives on its own deployment (e.g. Vercel), so this API
+# no longer needs to serve it. This block is kept only for local testing:
+# if a "frontend" folder happens to exist next to where you run this from,
+# it'll still be served — otherwise it's skipped instead of crashing.
+if os.path.isdir("frontend"):
+    app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
-@app.get("/")
-def home():
-    return FileResponse("frontend/index.html")
+    @app.get("/")
+    def home():
+        return FileResponse("frontend/index.html")
+else:
+    @app.get("/")
+    def home():
+        return {"status": "ok", "service": "backend API"}

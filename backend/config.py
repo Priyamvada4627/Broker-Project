@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     cloudinary_api_secret:str
     model_config = {
         "env_file": ".env",
+        "extra": "ignore",
        
     }
     

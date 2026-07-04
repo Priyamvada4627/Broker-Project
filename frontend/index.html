@@ -5,306 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Broker App</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f5f5f3;
-    --bg-tertiary: #efefec;
-    --text-primary: #1a1a1a;
-    --text-secondary: #6b6b6b;
-    --text-tertiary: #9b9b9b;
-    --border: rgba(0,0,0,0.12);
-    --border-md: rgba(0,0,0,0.22);
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --info-bg: #e6f1fb; --info-text: #185fa5;
-    --success-bg: #eaf3de; --success-text: #3b6d11;
-    --warning-bg: #faeeda; --warning-text: #854f0b;
-    --danger-bg: #fcebeb; --danger-text: #a32d2d;
-  }
-
-
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-    line-height: 1.5;
-  }
-
-  .app { display: flex; height: 100vh; overflow: hidden; }
-
-  /* Sidebar */
-  .sidebar {
-    width: 210px;
-    flex-shrink: 0;
-    background: var(--bg-secondary);
-    border-right: 0.5px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-  .sidebar-logo {
-    padding: 16px;
-    font-size: 15px;
-    font-weight: 500;
-    border-bottom: 0.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .nav-section {
-    padding: 12px 16px 4px;
-    font-size: 10px;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: .06em;
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 13px;
-    transition: background 0.1s, color 0.1s;
-    border-right: 2px solid transparent;
-  }
-  .nav-item:hover { background: var(--bg-primary); color: var(--text-primary); }
-  .nav-item.active {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-weight: 500;
-    border-right-color: var(--text-primary);
-  }
-  .nav-item i { font-size: 16px; width: 18px; }
-  .user-pill {
-    margin-top: auto;
-    padding: 12px 16px;
-    border-top: 0.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .avatar {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: var(--info-bg);
-    color: var(--info-text);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 500; flex-shrink: 0;
-  }
-
-  /* Main content */
-  .main { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg-tertiary); }
-  .page { display: none; }
-  .page.active { display: block; }
-  .page-title { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
-  .page-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
-
-  /* Cards */
-  .card {
-    background: var(--bg-primary);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
-    margin-bottom: 16px;
-  }
-  .card-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* Forms */
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
-  .form-group { display: flex; flex-direction: column; gap: 4px; }
-  .form-group label { font-size: 12px; color: var(--text-secondary); }
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    font-family: inherit;
-    font-size: 13px;
-    padding: 7px 10px;
-    border-radius: var(--radius-md);
-    border: 0.5px solid var(--border-md);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus { border-color: var(--text-secondary); }
-  .form-group textarea { resize: vertical; min-height: 64px; }
-  .form-group input[type="file"] { padding: 5px 8px; }
-
-  /* Buttons */
-  .btn {
-    font-family: inherit;
-    font-size: 13px;
-    padding: 7px 14px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 0.5px solid var(--border-md);
-    background: transparent;
-    color: var(--text-primary);
-    transition: background 0.1s;
-  }
-  .btn:hover { background: var(--bg-secondary); }
-  .btn.primary {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    border-color: transparent;
-  }
-  .btn.primary:hover { opacity: 0.85; }
-  .btn.danger { color: var(--danger-text); border-color: var(--danger-text); }
-  .btn.danger:hover { background: var(--danger-bg); }
-  .btn-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-
-  /* Metrics */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
-  .metric { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 14px; }
-  .metric-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
-  .metric-value { font-size: 24px; font-weight: 500; }
-
-  /* Tables */
-  .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .table th {
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    border-bottom: 0.5px solid var(--border);
-  }
-  .table td {
-    padding: 10px 12px;
-    border-bottom: 0.5px solid var(--border);
-    color: var(--text-primary);
-  }
-  .table tr:last-child td { border-bottom: none; }
-  .table tr:hover td { background: var(--bg-secondary); }
-
-  /* Badges */
-  .badge {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 99px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .badge.pending   { background: var(--warning-bg); color: var(--warning-text); }
-  .badge.verified  { background: var(--success-bg); color: var(--success-text); }
-  .badge.rejected  { background: var(--danger-bg);  color: var(--danger-text);  }
-  .badge.active    { background: var(--info-bg);    color: var(--info-text);    }
-  .badge.completed { background: var(--success-bg); color: var(--success-text); }
-  .badge.countered { background: var(--warning-bg); color: var(--warning-text); }
-  .badge.withdrawn { background: var(--bg-secondary); color: var(--text-secondary); }
-  .badge.accepted  { background: var(--info-bg); color: var(--info-text); }
-
-  /* Alerts */
-  .alert {
-    border-radius: var(--radius-md);
-    padding: 10px 14px;
-    font-size: 13px;
-    margin-bottom: 12px;
-    line-height: 1.5;
-  }
-  .alert.info    { background: var(--info-bg);    color: var(--info-text);    }
-  .alert.success { background: var(--success-bg); color: var(--success-text); }
-  .alert.warning { background: var(--warning-bg); color: var(--warning-text); }
-  .alert.danger  { background: var(--danger-bg);  color: var(--danger-text);  }
-  .alert code { font-family: monospace; font-size: 12px; }
-
-  /* HTTP method chips */
-  .method {
-    font-size: 10px;
-    font-weight: 600;
-    font-family: monospace;
-    padding: 1px 6px;
-    border-radius: 4px;
-  }
-  .method.GET    { background: #e6f1fb; color: #185fa5; }
-  .method.POST   { background: #eaf3de; color: #3b6d11; }
-  .method.PATCH  { background: #faeeda; color: #854f0b; }
-  .method.DELETE { background: #fcebeb; color: #a32d2d; }
-
-  /* Flow steps */
-  .flow-steps {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 20px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .flow-step {
-    font-size: 11px;
-    padding: 5px 12px;
-    border-radius: 99px;
-    border: 0.5px solid var(--border);
-    color: var(--text-secondary);
-    background: var(--bg-primary);
-    white-space: nowrap;
-  }
-  .flow-step.done    { background: var(--success-bg); color: var(--success-text); border-color: transparent; }
-  .flow-step.current { background: var(--text-primary); color: var(--bg-primary); border-color: transparent; font-weight: 500; }
-  .flow-arrow { color: var(--text-tertiary); padding: 0 4px; font-size: 14px; }
-
-  /* ML result box */
-  .ml-box {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    margin-top: 14px;
-    display: none;
-  }
-  .ml-box.show { display: block; }
-  .ml-price { font-size: 22px; font-weight: 500; }
-  .ml-range  { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
-
-  /* Tag row (demo users) */
-  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .tag {
-    font-size: 12px;
-    padding: 5px 12px;
-    border-radius: var(--radius-md);
-    border: 0.5px solid var(--border-md);
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: background 0.1s, color 0.1s;
-  }
-  .tag:hover { background: var(--bg-secondary); color: var(--text-primary); }
-
-  /* Responsive */
-  @media (max-width: 700px) {
-    .sidebar { width: 160px; }
-    .form-row { grid-template-columns: 1fr; }
-    .form-row.three { grid-template-columns: 1fr; }
-    .metrics { grid-template-columns: 1fr 1fr; }
-    .main { padding: 14px; }
-  }
-  @media (max-width: 480px) {
-    .sidebar { display: none; }
-    .app { flex-direction: column; }
-  }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -380,7 +81,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 
         <div class="card">
-          <div class="card-title"><span class="method POST">POST</span> /login</div>
+          <div class="card-title">Log in</div>
           <div class="form-group" style="margin-bottom:10px">
             <label>Email</label>
             <input type="email" id="loginEmail" placeholder="alice@example.com" value="alice@example.com">
@@ -396,7 +97,7 @@
         </div>
 
         <div class="card">
-          <div class="card-title"><span class="method POST">POST</span> /users/register</div>
+          <div class="card-title">Create an account</div>
           <div class="form-row">
             <div class="form-group">
               <label>Email</label>
@@ -427,26 +128,12 @@
         </div>
 
       </div>
-
-      <div class="card">
-        <div class="card-title">Quick-pick demo users</div>
-        <div class="tag-row">
-          <div class="tag" onclick="setUser('buyer@test.com','pass','Alice','buyer','BU')">👤 Alice (buyer)</div>
-          <div class="tag" onclick="setUser('seller@test.com','pass','Bob','seller','SE')">🏠 Bob (seller)</div>
-          <div class="tag" onclick="setUser('agent@test.com','pass','Charlie','agent','AG')">🏢 Charlie (agent)</div>
-        </div>
-        <div class="alert info">
-          In production this calls <code>POST /login</code> with <code>application/x-www-form-urlencoded</code>
-          (OAuth2PasswordRequestForm) and stores the returned JWT.
-          The token is then sent as <code>Authorization: Bearer &lt;token&gt;</code> on every request.
-        </div>
-      </div>
     </div>
 
     <!-- BROWSE PROPERTIES -->
     <div class="page" id="page-browse">
       <div class="page-title">Browse properties</div>
-      <div class="page-sub"><span class="method GET">GET</span> /properties/all — filter by city, purpose, type, price range</div>
+      <div class="page-sub">Search available properties by city, type, purpose, and price range.</div>
 
       <div class="card">
         <div class="card-title">Filters</div>
@@ -502,7 +189,7 @@
     <!-- MY BIDS (BUYER) -->
     <div class="page" id="page-mybids">
       <div class="page-title">My bids</div>
-      <div class="page-sub"><span class="method GET">GET</span> /bid/buyer — interests placed by me</div>
+      <div class="page-sub">Bids you've placed on properties.</div>
 
       <div class="btn-row">
         <button class="btn" onclick="loadBuyerBids()"><i class="ti ti-refresh"></i> Refresh bids</button>
@@ -512,7 +199,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method POST">POST</span> /bid/{property_id} — Place a bid</div>
+        <div class="card-title">Place a bid</div>
         <div class="form-row">
           <div class="form-group">
             <label>Property ID</label>
@@ -534,7 +221,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method PATCH">PATCH</span> /bid/{interest_id} — Update my bid</div>
+        <div class="card-title">Update a bid</div>
         <div class="form-row">
           <div class="form-group">
             <label>Interest ID</label>
@@ -559,7 +246,7 @@
     <!-- ADD PROPERTY (SELLER) -->
     <div class="page" id="page-addprop">
       <div class="page-title">List a property</div>
-      <div class="page-sub"><span class="method POST">POST</span> /properties/add — auto-assigns an agent, returns ML price hint</div>
+      <div class="page-sub">List a new property. An agent is assigned automatically, and we'll show an AI price hint.</div>
 
       <div class="card">
         <div class="form-row three">
@@ -634,7 +321,7 @@
     <!-- MY LISTINGS (SELLER) -->
     <div class="page" id="page-myprops">
       <div class="page-title">My listings</div>
-      <div class="page-sub"><span class="method GET">GET</span> /properties/my — all properties I've listed</div>
+      <div class="page-sub">All properties you've listed.</div>
 
       <div class="btn-row">
         <button class="btn" onclick="loadMyProps()"><i class="ti ti-refresh"></i> Refresh</button>
@@ -643,13 +330,13 @@
       <div id="myPropList"><div class="alert info">Click refresh to load your listings.</div></div>
 
       <div class="card" style="margin-top:16px">
-        <div class="card-title"><span class="method GET">GET</span> /bid/seller — Incoming bids on my properties</div>
+        <div class="card-title">Incoming bids on your properties</div>
         <button class="btn" onclick="loadSellerBids()"><i class="ti ti-refresh"></i> Load bids</button>
         <div id="sellerBidList" style="margin-top:12px"></div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method PATCH">PATCH</span> /bid/{interest_id} — Respond to a bid</div>
+        <div class="card-title">Respond to a bid</div>
         <div class="form-row">
           <div class="form-group">
             <label>Interest ID</label>
@@ -678,7 +365,7 @@
     <!-- MY DEALS -->
     <div class="page" id="page-mydeals">
       <div class="page-title">My deals</div>
-      <div class="page-sub"><span class="method GET">GET</span> /deals/my — deals where I'm buyer or seller</div>
+      <div class="page-sub">Deals where you're the buyer or seller.</div>
 
       <div class="flow-steps">
         <div class="flow-step done">Bid accepted</div>
@@ -698,7 +385,7 @@
       <div id="myDealList"></div>
 
       <div class="card" style="margin-top:16px">
-        <div class="card-title"><span class="method POST">POST</span> /deals/{deal_id}/documents — Upload document</div>
+        <div class="card-title">Upload a document</div>
         <div class="form-row">
           <div class="form-group">
             <label>Deal ID</label>
@@ -725,7 +412,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method PATCH">PATCH</span> /deals/{deal_id}/pay — Confirm payment (buyer only)</div>
+        <div class="card-title">Confirm payment (buyer only)</div>
         <div class="alert warning" style="margin-bottom:12px">
           Only callable by buyer once deal status is <strong>documents_verified</strong>.
         </div>
@@ -743,7 +430,7 @@
     <!-- AGENT DASHBOARD -->
     <div class="page" id="page-agentdash">
       <div class="page-title">Agent dashboard</div>
-      <div class="page-sub"><span class="method GET">GET</span> /agents/dashboard — summary of properties, deals, pending docs</div>
+      <div class="page-sub">A summary of your assigned properties, deals, and pending documents.</div>
 
       <div class="btn-row">
         <button class="btn primary" onclick="loadAgentDash()"><i class="ti ti-refresh"></i> Load dashboard</button>
@@ -760,7 +447,7 @@
     <!-- VERIFY PROPERTIES (AGENT) -->
     <div class="page" id="page-verifyprop">
       <div class="page-title">Verify listings</div>
-      <div class="page-sub"><span class="method PATCH">PATCH</span> /agents/verify/property/{id} — approve or request changes</div>
+      <div class="page-sub">Approve a listing, or request changes from the seller.</div>
 
       <div class="card">
         <div class="form-row">
@@ -787,7 +474,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method POST">POST</span> /agents/register — Register a new agent (agent-only)</div>
+        <div class="card-title">Register a new agent</div>
         <div class="form-row">
           <div class="form-group">
             <label>Email</label>
@@ -822,10 +509,10 @@
     <!-- VERIFY DOCUMENTS (AGENT) -->
     <div class="page" id="page-verifydocs">
       <div class="page-title">Review documents</div>
-      <div class="page-sub"><span class="method PATCH">PATCH</span> /deals/{deal_id}/documents/{doc_id}/verify</div>
+      <div class="page-sub">Verify or reject documents uploaded for a deal.</div>
 
       <div class="card">
-        <div class="card-title"><span class="method GET">GET</span> /deals/{deal_id}/documents — View documents</div>
+        <div class="card-title">View documents</div>
         <div class="form-group" style="margin-bottom:10px;max-width:200px">
           <label>Deal ID</label>
           <input type="number" id="viewDocsDealId" placeholder="1">
@@ -864,7 +551,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="method PATCH">PATCH</span> /deals/{deal_id}/complete — Complete deal (agent only)</div>
+        <div class="card-title">Complete the deal (agent only)</div>
         <div class="alert warning" style="margin-bottom:12px">
           Only callable by agent after deal status is <strong>payment_pending</strong>.
         </div>
@@ -882,9 +569,7 @@
     <!-- ML PRICE ESTIMATE -->
     <div class="page" id="page-ml">
       <div class="page-title">ML price estimate</div>
-      <div class="page-sub">
-        <span class="method GET">GET</span> /ml/price-estimate — Random Forest model trained on Kaggle + live DB data
-      </div>
+      <div class="page-sub">Get an AI-estimated price, based on a model trained on market and live listing data.</div>
 
       <div class="card">
         <div class="form-row three">
@@ -945,567 +630,10 @@
       </div>
     </div>
 
-    <!-- API REFERENCE -->
-    <!-- API REFERENCE -->
-
-
   </div><!-- /main -->
 </div><!-- /app -->
 
-<script>
-
-const BASE = window.location.origin;
-
-let token = localStorage.getItem('token');
-
-
-function nav(page, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  if (el) el.classList.add('active');
-
-}
-
-
-async function apiCall(method, path, body = null, isFormData = false) {
-  const headers = {};
-  if (token) headers['Authorization'] = 'Bearer ' + token;
-  if (!isFormData && body) headers['Content-Type'] = 'application/json';
-  const opts = { method, headers };
-  if (body) opts.body = isFormData ? body : JSON.stringify(body);
-  try {
-    const res = await fetch(BASE + path, opts);
-    const data = await res.json();
-    return { ok: res.ok, status: res.status, data };
-  } catch (e) {
-    return { ok: false, status: 0, data: { detail: 'Network error or CORS — make sure your backend is running at ' + BASE } };
-  }
-}
-
-// ─────────────────────────────────────────────
-//  ALERT HELPERS
-// ─────────────────────────────────────────────
-function showAlert(id, type, msg) {
-  document.getElementById(id).innerHTML = `<div class="alert ${type}">${msg}</div>`;
-}
-
-// ─────────────────────────────────────────────
-//  AUTH
-// ─────────────────────────────────────────────
-function setUser(email, pass, name, role, initials) {
-  token = 'DEMO_TOKEN_' + role;
-  document.getElementById('userName').textContent = name;
-  document.getElementById('userRole').textContent = role;
-  document.getElementById('userAvatar').textContent = initials;
-  document.getElementById('loginEmail').value = email;
-  document.getElementById('loginPass').value = pass;
-  showAlert('loginResult', 'success', `Simulated login as ${name} (${role}). Token stored.`);
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value;
-  const pass  = document.getElementById('loginPass').value;
-  const form  = new URLSearchParams();
-  form.append('username', email);
-  form.append('password', pass);
-  try {
-    const res  = await fetch(BASE + '/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form
-    });
-    const data = await res.json();
-    if (res.ok) {
-      token = data.access_token;
-      localStorage.setItem('token', token);
-      const initials = email.slice(0, 2).toUpperCase();
-      document.getElementById('userName').textContent = email;
-      document.getElementById('userRole').textContent = 'logged in';
-      document.getElementById('userAvatar').textContent = initials;
-      showAlert('loginResult', 'success', 'Login successful — JWT stored.');
-    } else {
-      showAlert('loginResult', 'danger', 'Error: ' + (data.detail || JSON.stringify(data)));
-    }
-  } catch (e) {
-    showAlert('loginResult', 'warning', 'Could not reach backend (' + e.message + '). Using demo mode.');
-    token = 'DEMO_JWT';
-  }
-}
-function logout() {
-  token = null;
-  localStorage.removeItem('token');
-  document.getElementById('userName').textContent = 'Not logged in';
-  document.getElementById('userRole').textContent = '—';
-  document.getElementById('userAvatar').textContent = '?';
-
-  showAlert(
-    'loginResult',
-    'success',
-    'Logged out successfully.'
-  );
-
-  nav('login', null);
-} 
-async function doRegister() {
-  const email    = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPass').value;
-  const phone    = document.getElementById('regPhone').value;
-  const role     = document.getElementById('regRole').value;
-  if (!email || !password) { showAlert('registerResult', 'danger', 'Email and password are required.'); return; }
-  const r = await apiCall('POST', '/users/register', { email, password, phone, role });
-  r.ok
-    ? showAlert('registerResult', 'success', 'Registered successfully! Now login.')
-    : showAlert('registerResult', 'danger', 'Error: ' + (r.data.detail || JSON.stringify(r.data)));
-}
-
-// ─────────────────────────────────────────────
-//  BROWSE PROPERTIES
-// ─────────────────────────────────────────────
-async function loadProperties() {
-  if (!token) { document.getElementById('propList').innerHTML = '<div class="alert danger">Please login first.</div>'; return; }
-  const city    = document.getElementById('filterCity').value;
-  const purpose = document.getElementById('filterPurpose').value;
-  const type    = document.getElementById('filterType').value;
-  const min     = document.getElementById('filterMin').value;
-  const max     = document.getElementById('filterMax').value;
-  const limit   = document.getElementById('filterLimit').value;
-
-  let qs = `?limit=${limit}&offset=0`;
-  if (city)    qs += `&city=${encodeURIComponent(city)}`;
-  if (purpose) qs += `&purpose=${purpose}`;
-  if (type)    qs += `&property_type=${type}`;
-  if (min)     qs += `&price_min=${min}`;
-  if (max)     qs += `&price_max=${max}`;
-
-  const r = await apiCall('GET', '/properties/all' + qs);
-  if (r.ok && Array.isArray(r.data)) {
-    if (!r.data.length) { document.getElementById('propList').innerHTML = '<div class="alert info">No properties found.</div>'; return; }
-    document.getElementById('propList').innerHTML = r.data.map(p => `
-      <div class="card" style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:start">
-          <div>
-            <div style="font-weight:500;margin-bottom:4px">${p.description || 'Property #' + p.property_id}</div>
-            <div style="font-size:12px;color:var(--text-secondary)">${p.location?.city || ''}, ${p.location?.state || ''}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:16px">
-            <div style="font-size:16px;font-weight:500">₹${(p.price_to_pay || 0).toLocaleString('en-IN')}</div>
-            <span class="badge ${p.is_available ? 'verified' : 'withdrawn'}">${p.is_available ? 'Available' : 'Sold'}</span>
-          </div>
-        </div>
-        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-          <button class="btn" onclick="document.getElementById('bidPropId').value='${p.property_id}';nav('mybids',null)">
-            <i class="ti ti-gavel"></i> Place bid
-          </button>
-          <span style="font-size:12px;color:var(--text-tertiary)">ID: ${p.property_id}</span>
-        </div>
-      </div>
-    `).join('');
-  } else {
-    document.getElementById('propList').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-// ─────────────────────────────────────────────
-//  BIDS — BUYER
-// ─────────────────────────────────────────────
-async function loadBuyerBids() {
-  if (!token) return;
-  const r = await apiCall('GET', '/bid/buyer');
-  if (r.ok && Array.isArray(r.data)) {
-    if (!r.data.length) { document.getElementById('bidList').innerHTML = '<div class="alert info">No bids yet.</div>'; return; }
-    document.getElementById('bidList').innerHTML = `
-      <table class="table">
-        <thead><tr><th>Interest ID</th><th>Property</th><th>Bid (₹)</th><th>Counter (₹)</th><th>Price to pay (₹)</th><th>Status</th></tr></thead>
-        <tbody>
-          ${r.data.map(b => `<tr>
-            <td>${b.interest_id}</td>
-            <td>${b.property_id}</td>
-            <td>${(b.bid_amount || 0).toLocaleString('en-IN')}</td>
-            <td>${b.counter_amount != null ? b.counter_amount.toLocaleString('en-IN') : '—'}</td>
-            <td>${(b.price_to_pay || 0).toLocaleString('en-IN')}</td>
-            <td><span class="badge ${b.status}">${b.status}</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } else {
-    document.getElementById('bidList').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-async function placeBid() {
-  if (!token) { showAlert('bidResult', 'danger', 'Login first.'); return; }
-  const property_id = document.getElementById('bidPropId').value;
-  const bid_amount  = parseInt(document.getElementById('bidAmount').value) || null;
-  const message     = document.getElementById('bidMsg').value;
-  if (!property_id) { showAlert('bidResult', 'danger', 'Property ID required.'); return; }
-  const r = await apiCall('POST', `/bid/${property_id}`, { bid_amount, message });
-  if (r.ok) {
-    let msg = `Bid placed! Interest ID: <strong>${r.data.interest_id}</strong>`;
-    if (r.data.ml_warning) msg += `<br><span style="color:var(--warning-text)">⚠️ ${r.data.ml_warning}</span>`;
-    showAlert('bidResult', 'success', msg);
-  } else {
-    showAlert('bidResult', 'danger', r.data.detail || JSON.stringify(r.data));
-  }
-}
-
-async function updateBid() {
-  if (!token) { showAlert('updateBidResult', 'danger', 'Login first.'); return; }
-  const id     = document.getElementById('updateBidId').value;
-  const action = document.getElementById('updateBidAction').value;
-  if (!id) { showAlert('updateBidResult', 'danger', 'Interest ID required.'); return; }
-  const r = await apiCall('PATCH', `/bid/${id}`, { action });
-  r.ok
-    ? showAlert('updateBidResult', 'success', `Done. New status: <strong>${r.data.status}</strong>`)
-    : showAlert('updateBidResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-// ─────────────────────────────────────────────
-//  ADD PROPERTY (SELLER)
-// ─────────────────────────────────────────────
-async function addProperty() {
-  if (!token) { showAlert('addPropResult', 'danger', 'Login first.'); return; }
-  const city          = document.getElementById('pCity').value;
-  const state         = document.getElementById('pState').value;
-  const pincode       = document.getElementById('pPin').value;
-  const description   = document.getElementById('pDesc').value;
-  const property_type = document.getElementById('pType').value;
-  const purpose       = document.getElementById('pPurpose').value;
-  const price         = parseInt(document.getElementById('pPrice').value) || 0;
-  const bedrooms      = parseInt(document.getElementById('pBed').value) || 2;
-  const bathrooms     = parseInt(document.getElementById('pBath').value) || 2;
-  const area          = parseFloat(document.getElementById('pArea').value) || 1000;
-  if (!city || !state || !price) { showAlert('addPropResult', 'danger', 'City, state and price are required.'); return; }
-  const r = await apiCall('POST', '/properties/add', {
-    city, state, pincode, description, property_type, purpose,
-    price, is_available: true, bedrooms, bathrooms, area
-  });
-  if (r.ok) {
-    showAlert('addPropResult', 'success', `Property listed! ID: <strong>${r.data.id}</strong>`);
-    const hint = r.data.ml_price_hint;
-    if (hint) {
-      document.getElementById('mlHintBox').classList.add('show');
-      document.getElementById('mlHintPrice').textContent = `₹${(hint.estimated_fair_price || 0).toLocaleString('en-IN')}`;
-      document.getElementById('mlHintRange').textContent =
-        `Range: ₹${(hint.price_range?.[0] || 0).toLocaleString('en-IN')} – ₹${(hint.price_range?.[1] || 0).toLocaleString('en-IN')}`;
-      document.getElementById('mlHintNote').textContent = hint.note || '';
-    }
-  } else {
-    showAlert('addPropResult', 'danger', r.data.detail || JSON.stringify(r.data));
-  }
-}
-
-// ─────────────────────────────────────────────
-//  MY LISTINGS (SELLER)
-// ─────────────────────────────────────────────
-async function loadMyProps() {
-  if (!token) { document.getElementById('myPropList').innerHTML = '<div class="alert danger">Login first.</div>'; return; }
-  const r = await apiCall('GET', '/properties/my');
-  if (r.ok && Array.isArray(r.data)) {
-    if (!r.data.length) { document.getElementById('myPropList').innerHTML = '<div class="alert info">No listings yet.</div>'; return; }
-    document.getElementById('myPropList').innerHTML = r.data.map(p => `
-      <div class="card" style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:start">
-          <div>
-            <div style="font-weight:500">${p.description || 'Property #' + p.id}</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:3px">
-              ₹${(p.price || 0).toLocaleString('en-IN')} · ${p.property_type} · ${p.purpose}
-            </div>
-          </div>
-          <span class="badge ${p.verification_status === 'verified' ? 'verified' : p.verification_status === 'pending' ? 'pending' : 'rejected'}">
-            ${p.verification_status}
-          </span>
-        </div>
-        ${p.remarks ? `<div class="alert warning" style="margin-top:8px;font-size:12px">Agent remarks: ${p.remarks}</div>` : ''}
-      </div>
-    `).join('');
-  } else {
-    document.getElementById('myPropList').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-async function loadSellerBids() {
-  if (!token) return;
-  const r = await apiCall('GET', '/bid/seller');
-  if (r.ok && Array.isArray(r.data)) {
-    if (!r.data.length) { document.getElementById('sellerBidList').innerHTML = '<div class="alert info">No bids on your listings yet.</div>'; return; }
-    document.getElementById('sellerBidList').innerHTML = `
-      <table class="table">
-        <thead><tr><th>Interest ID</th><th>Property</th><th>Bid (₹)</th><th>Counter (₹)</th><th>Status</th></tr></thead>
-        <tbody>
-          ${r.data.map(b => `<tr>
-            <td>${b.interest_id}</td>
-            <td>${b.property_id}</td>
-            <td>${(b.bid_amount || 0).toLocaleString('en-IN')}</td>
-            <td>${b.counter_amount != null ? b.counter_amount.toLocaleString('en-IN') : '—'}</td>
-            <td><span class="badge ${b.status}">${b.status}</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  }
-}
-
-async function respondToBid() {
-  if (!token) { showAlert('sellerBidResult', 'danger', 'Login first.'); return; }
-  const id      = document.getElementById('sellerBidId').value;
-  const action  = document.getElementById('sellerBidAction').value;
-  const counter = document.getElementById('sellerCounter').value;
-  if (!id) { showAlert('sellerBidResult', 'danger', 'Interest ID required.'); return; }
-  const body = { action };
-  if (action === 'counter' && counter) body.counter_amount = parseInt(counter);
-  const r = await apiCall('PATCH', `/bid/${id}`, body);
-  r.ok
-    ? showAlert('sellerBidResult', 'success', `Done. Status: <strong>${r.data.status}</strong>`)
-    : showAlert('sellerBidResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-// ─────────────────────────────────────────────
-//  DEALS
-// ─────────────────────────────────────────────
-async function loadMyDeals() {
-  if (!token) { document.getElementById('myDealList').innerHTML = '<div class="alert danger">Login first.</div>'; return; }
-  const r = await apiCall('GET', '/deals/my');
-  if (r.ok && Array.isArray(r.data)) {
-    if (!r.data.length) { document.getElementById('myDealList').innerHTML = '<div class="alert info">No deals yet.</div>'; return; }
-    document.getElementById('myDealList').innerHTML = `
-      <table class="table">
-        <thead><tr><th>Deal ID</th><th>Property</th><th>Seller price (₹)</th><th>Agent fee (₹)</th><th>Final price (₹)</th><th>Status</th></tr></thead>
-        <tbody>
-          ${r.data.map(d => `<tr>
-            <td>${d.deal_id}</td>
-            <td>${d.property_id}</td>
-            <td>${(d.seller_price || 0).toLocaleString('en-IN')}</td>
-            <td>${(d.agent_fee || 0).toLocaleString('en-IN')}</td>
-            <td>${(d.final_price || 0).toLocaleString('en-IN')}</td>
-            <td><span class="badge ${d.status === 'completed' ? 'completed' : d.status.includes('document') || d.status.includes('pending') ? 'pending' : 'active'}">${d.status}</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } else {
-    document.getElementById('myDealList').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-async function uploadDoc() {
-  if (!token) { showAlert('docResult', 'danger', 'Login first.'); return; }
-  const deal_id  = document.getElementById('docDealId').value;
-  const doc_type = document.getElementById('docType').value;
-  const file     = document.getElementById('docFile').files[0];
-  if (!deal_id || !file) { showAlert('docResult', 'danger', 'Deal ID and file are required.'); return; }
-  const fd = new FormData();
-  fd.append('document_type', doc_type);
-  fd.append('file', file);
-  const r = await apiCall('POST', `/deals/${deal_id}/documents`, fd, true);
-  r.ok
-    ? showAlert('docResult', 'success', `Uploaded! Document ID: <strong>${r.data.document_id}</strong><br>URL: <a href="${r.data.file_url}" target="_blank" style="color:inherit">${r.data.file_url}</a>`)
-    : showAlert('docResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-async function confirmPayment() {
-  if (!token) { showAlert('payResult', 'danger', 'Login first.'); return; }
-  const id = document.getElementById('payDealId').value;
-  if (!id) { showAlert('payResult', 'danger', 'Deal ID required.'); return; }
-  const r = await apiCall('PATCH', `/deals/${id}/pay`);
-  r.ok
-    ? showAlert('payResult', 'success', r.data.message)
-    : showAlert('payResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-// ─────────────────────────────────────────────
-//  AGENT DASHBOARD
-// ─────────────────────────────────────────────
-async function loadAgentDash() {
-  if (!token) return;
-  const r = await apiCall('GET', '/agents/dashboard');
-  if (r.ok) {
-    const d = r.data;
-    const s = d.summary || {};
-    document.getElementById('agentMetrics').innerHTML = `
-      <div class="metric"><div class="metric-label">Assigned properties</div><div class="metric-value">${s.total_assigned_properties ?? '—'}</div></div>
-      <div class="metric"><div class="metric-label">Pending verification</div><div class="metric-value">${s.pending_verification ?? '—'}</div></div>
-      <div class="metric"><div class="metric-label">Active deals</div><div class="metric-value">${s.active_deals ?? '—'}</div></div>
-      <div class="metric"><div class="metric-label">Pending docs</div><div class="metric-value">${s.pending_documents ?? '—'}</div></div>
-    `;
-    document.getElementById('agentDetails').innerHTML = `
-      <div class="card">
-        <div class="card-title">Properties assigned</div>
-        ${d.properties?.length ? `
-          <table class="table">
-            <thead><tr><th>ID</th><th>Description</th><th>City</th><th>Price</th><th>Modified</th><th>Status</th></tr></thead>
-            <tbody>
-              ${d.properties.map(p => `<tr>
-                <td>${p.property_id}</td>
-                <td>${p.description || '—'}</td>
-                <td>${p.city || '—'}</td>
-                <td>₹${(p.price || 0).toLocaleString('en-IN')}</td>
-                <td>${p.is_modified ? 'Yes' : 'No'}</td>
-                <td><span class="badge ${p.verification_status === 'verified' ? 'verified' : 'pending'}">${p.verification_status}</span></td>
-              </tr>`).join('')}
-            </tbody>
-          </table>` : '<div class="alert info">No properties assigned.</div>'}
-      </div>
-      <div class="card">
-        <div class="card-title">Active deals</div>
-        ${d.active_deals?.length ? `
-          <table class="table">
-            <thead><tr><th>Deal ID</th><th>Property</th><th>Final price</th><th>Status</th></tr></thead>
-            <tbody>
-              ${d.active_deals.map(deal => `<tr>
-                <td>${deal.deal_id}</td>
-                <td>${deal.property_id}</td>
-                <td>₹${(deal.final_price || 0).toLocaleString('en-IN')}</td>
-                <td><span class="badge pending">${deal.status}</span></td>
-              </tr>`).join('')}
-            </tbody>
-          </table>` : '<div class="alert info">No active deals.</div>'}
-      </div>
-      <div class="card">
-        <div class="card-title">Pending documents to review</div>
-        ${d.pending_documents?.length ? `
-          <table class="table">
-            <thead><tr><th>Doc ID</th><th>Deal ID</th><th>Type</th><th>Uploaded by</th></tr></thead>
-            <tbody>
-              ${d.pending_documents.map(doc => `<tr>
-                <td>${doc.document_id}</td>
-                <td>${doc.deal_id}</td>
-                <td>${doc.document_type}</td>
-                <td>${doc.uploaded_by}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>` : '<div class="alert info">No pending documents.</div>'}
-      </div>
-    `;
-  } else {
-    document.getElementById('agentDetails').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-// ─────────────────────────────────────────────
-//  AGENT — VERIFY PROPERTY
-// ─────────────────────────────────────────────
-async function verifyProperty() {
-  if (!token) { showAlert('vpResult', 'danger', 'Login first.'); return; }
-  const id      = document.getElementById('vpId').value;
-  const action  = document.getElementById('vpAction').value;
-  const remarks = document.getElementById('vpRemarks').value;
-  if (!id) { showAlert('vpResult', 'danger', 'Property ID required.'); return; }
-  let url = `/agents/verify/property/${id}?action=${action}`;
-  if (remarks) url += `&remarks=${encodeURIComponent(remarks)}`;
-  const r = await apiCall('PATCH', url);
-  r.ok
-    ? showAlert('vpResult', 'success', r.data.message)
-    : showAlert('vpResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-async function registerAgent() {
-  if (!token) { showAlert('agResult', 'danger', 'Login first.'); return; }
-  const email       = document.getElementById('agEmail').value;
-  const password    = document.getElementById('agPass').value;
-  const name        = document.getElementById('agName').value;
-  const fee_percent = parseFloat(document.getElementById('agFee').value) || 2.5;
-  const phone       = document.getElementById('agPhone').value;
-  if (!email || !password || !name) { showAlert('agResult', 'danger', 'Email, password and name are required.'); return; }
-  const r = await apiCall('POST', '/agents/register', {
-    email, password, name, fee_percent, phone, min_fee: 5000, max_fee: 500000
-  });
-  r.ok
-    ? showAlert('agResult', 'success', `Agent created! Agent ID: <strong>${r.data.agent_id}</strong>`)
-    : showAlert('agResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-// ─────────────────────────────────────────────
-//  AGENT — DOCUMENTS
-// ─────────────────────────────────────────────
-async function viewDealDocs() {
-  if (!token) return;
-  const id = document.getElementById('viewDocsDealId').value;
-  if (!id) return;
-  const r = await apiCall('GET', `/deals/${id}/documents`);
-  if (r.ok && Array.isArray(r.data)) {
-    document.getElementById('docViewList').innerHTML = r.data.length ? `
-      <table class="table">
-        <thead><tr><th>Doc ID</th><th>Type</th><th>Status</th><th>Uploaded by</th><th>Notes</th><th>File</th></tr></thead>
-        <tbody>
-          ${r.data.map(d => `<tr>
-            <td>${d.document_id}</td>
-            <td>${d.document_type}</td>
-            <td><span class="badge ${d.status}">${d.status}</span></td>
-            <td>${d.uploaded_by}</td>
-            <td style="font-size:12px;color:var(--text-secondary)">${d.notes || '—'}</td>
-            <td>${d.file_url ? `<a href="${d.file_url}" target="_blank" style="font-size:12px;color:var(--info-text)">View</a>` : '—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>` : '<div class="alert info">No documents for this deal.</div>';
-  } else {
-    document.getElementById('docViewList').innerHTML = `<div class="alert danger">${r.data.detail || JSON.stringify(r.data)}</div>`;
-  }
-}
-
-async function verifyDoc() {
-  if (!token) { showAlert('vdResult', 'danger', 'Login first.'); return; }
-  const deal_id = document.getElementById('vdDealId').value;
-  const doc_id  = document.getElementById('vdDocId').value;
-  const status  = document.getElementById('vdStatus').value;
-  const notes   = document.getElementById('vdNotes').value;
-  if (!deal_id || !doc_id) { showAlert('vdResult', 'danger', 'Deal ID and Document ID required.'); return; }
-  let url = `/deals/${deal_id}/documents/${doc_id}/verify?status=${status}`;
-  if (notes) url += `&notes=${encodeURIComponent(notes)}`;
-  const r = await apiCall('PATCH', url);
-  r.ok
-    ? showAlert('vdResult', 'success', `${r.data.message}. Deal status now: <strong>${r.data.deal_status}</strong>`)
-    : showAlert('vdResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-async function completeDeal() {
-  if (!token) { showAlert('completeResult', 'danger', 'Login first.'); return; }
-  const id = document.getElementById('completeDealId').value;
-  if (!id) { showAlert('completeResult', 'danger', 'Deal ID required.'); return; }
-  const r = await apiCall('PATCH', `/deals/${id}/complete`);
-  r.ok
-    ? showAlert('completeResult', 'success', r.data.message)
-    : showAlert('completeResult', 'danger', r.data.detail || JSON.stringify(r.data));
-}
-
-// ─────────────────────────────────────────────
-//  ML PRICE ESTIMATE
-// ─────────────────────────────────────────────
-async function getMLEstimate() {
-  if (!token) { showAlert('mlResult', 'danger', 'Login first.'); return; }
-  const city     = document.getElementById('mlCity').value;
-  const type     = document.getElementById('mlType').value;
-  const purpose  = document.getElementById('mlPurpose').value;
-  const beds     = document.getElementById('mlBed').value;
-  const baths    = document.getElementById('mlBath').value;
-  const area     = document.getElementById('mlArea').value;
-  const furn     = document.getElementById('mlFurn').value;
-  const locality = document.getElementById('mlLocality').value;
-  if (!city) { showAlert('mlResult', 'danger', 'City is required.'); return; }
-  let url = `/ml/price-estimate?city=${encodeURIComponent(city)}&property_type=${type}&purpose=${purpose}&bedrooms=${beds}&bathrooms=${baths}&area=${area}&furnishing=${encodeURIComponent(furn)}`;
-  if (locality) url += `&locality=${encodeURIComponent(locality)}`;
-  const r = await apiCall('GET', url);
-  if (r.ok) {
-    const d = r.data;
-    document.getElementById('mlResult').innerHTML = `
-      <div class="card" style="margin:0">
-        <div style="font-size:26px;font-weight:500;margin-bottom:4px">
-          ₹${(d.predicted_price || 0).toLocaleString('en-IN')}
-        </div>
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
-          Range: ₹${(d.price_range?.[0] || 0).toLocaleString('en-IN')} – ₹${(d.price_range?.[1] || 0).toLocaleString('en-IN')}
-        </div>
-        <div style="display:flex;gap:20px;font-size:13px;color:var(--text-secondary);flex-wrap:wrap">
-          <span>Confidence: <strong>${((d.confidence || 0) * 100).toFixed(0)}%</strong></span>
-          <span>Model R²: <strong>${d.model_r2}</strong></span>
-        </div>
-        <div style="margin-top:10px;font-size:12px;color:var(--text-secondary)">${d.note || ''}</div>
-      </div>`;
-  } else {
-    showAlert('mlResult', 'danger', r.data.detail || JSON.stringify(r.data));
-  }
-}
-
-
-</script>
+<script src="app.js"></script>
 
 </body>
 </html>

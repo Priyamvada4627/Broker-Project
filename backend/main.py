@@ -7,8 +7,7 @@ from .services.ml import load_models
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timezone
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+
 
 app = FastAPI()
 
@@ -123,17 +122,3 @@ scheduler.add_job(retrain_ml_models, 'interval', hours=24)
 scheduler.start()
 
 
-# The frontend now lives on its own deployment (e.g. Vercel), so this API
-# no longer needs to serve it. This block is kept only for local testing:
-# if a "frontend" folder happens to exist next to where you run this from,
-# it'll still be served — otherwise it's skipped instead of crashing.
-if os.path.isdir("frontend"):
-    app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
-
-    @app.get("/")
-    def home():
-        return FileResponse("frontend/index.html")
-else:
-    @app.get("/")
-    def home():
-        return {"status": "ok", "service": "backend API"}

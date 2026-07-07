@@ -229,7 +229,7 @@ async function addProperty() {
       document.getElementById('mlHintBox').classList.add('show');
       document.getElementById('mlHintPrice').textContent = `₹${(hint.estimated_fair_price || 0).toLocaleString('en-IN')}`;
       document.getElementById('mlHintRange').textContent =
-        `Range: ₹${(hint.price_range?.[0] || 0).toLocaleString('en-IN')} – ₹${(hint.price_range?.[1] || 0).toLocaleString('en-IN')}`;
+      `Range: ₹${(hint.price_range?.low || 0).toLocaleString('en-IN')} – ₹${(hint.price_range?.high || 0).toLocaleString('en-IN')}`;
       document.getElementById('mlHintNote').textContent = hint.note || '';
     }
   } else {
@@ -528,22 +528,22 @@ async function getMLEstimate() {
   if (r.ok) {
     const d = r.data;
     document.getElementById('mlResult').innerHTML = `
-      <div class="card" style="margin:0">
-        <div style="font-size:26px;font-weight:500;margin-bottom:4px">
-          ₹${(d.predicted_price || 0).toLocaleString('en-IN')}
-        </div>
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
-          Range: ₹${(d.price_range?.[0] || 0).toLocaleString('en-IN')} – ₹${(d.price_range?.[1] || 0).toLocaleString('en-IN')}
-        </div>
-        <div style="display:flex;gap:20px;font-size:13px;color:var(--text-secondary);flex-wrap:wrap">
-          <span>Confidence: <strong>${((d.confidence || 0) * 100).toFixed(0)}%</strong></span>
-          <span>Model R²: <strong>${d.model_r2}</strong></span>
-        </div>
-        <div style="margin-top:10px;font-size:12px;color:var(--text-secondary)">${d.note || ''}</div>
-      </div>`;
-  } else {
-    showAlert('mlResult', 'danger', r.data.detail || JSON.stringify(r.data));
-  }
+    <div class="card" style="margin:0">
+      <div style="font-size:26px;font-weight:500;margin-bottom:4px">
+        ₹${(d.predicted_price || 0).toLocaleString('en-IN')}
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+        Range: ₹${(d.price_range?.low || 0).toLocaleString('en-IN')} – ₹${(d.price_range?.high || 0).toLocaleString('en-IN')}
+      </div>
+      <div style="display:flex;gap:20px;font-size:13px;color:var(--text-secondary);flex-wrap:wrap">
+        <span>Confidence: <strong>${d.confidence ? d.confidence.charAt(0).toUpperCase() + d.confidence.slice(1) : '—'}</strong></span>
+        <span>Model R²: <strong>${d.model_r2}</strong></span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-secondary)">${d.note || ''}</div>
+    </div>`;
+} else {
+  showAlert('mlResult', 'danger', r.data.detail || JSON.stringify(r.data));
+}
 }
 
 

@@ -26,8 +26,7 @@ def load_models():
         else:
             print(f"[ML] Warning: No model for '{purpose}' at {path}")
             print(f"[ML] Run: python -m backend.scripts.train_model")
-
-
+        
 def predict_price(
     city: str,
     property_type: str,
@@ -43,7 +42,7 @@ def predict_price(
 
     Returns:
         predicted_price : int
-        price_range     : { low: int, high: int }  — 10th–90th percentile
+        price_range     : { low: int, high: int }  — ±error band, capped at 50%
         confidence      : "high" | "medium" | "low"
         model_r2        : float
     """
@@ -58,7 +57,6 @@ def predict_price(
     r2           = payload["r2"]
     mae          = payload["mae"]
 
-    # ── Encode categoricals safely ──────────────────────────────────────────
     def safe_encode(le, value):
         classes = list(le.classes_)
         return le.transform([value])[0] if value in classes else 0
@@ -67,30 +65,22 @@ def predict_price(
     type_enc    = safe_encode(encoders["property_type"], property_type)
     purpose_enc = safe_encode(encoders["purpose"],       purpose)
 
-    # Locality target encoding — fall back to global median for unknown localities
-    loc_key       = locality.strip().title() if locality else city.strip().title()
+    loc_key        = locality.strip().title() if locality else city.strip().title()
     locality_price = locality_map.get(loc_key, global_med)
 
     X = np.array([[city_enc, type_enc, purpose_enc,
                    bedrooms, bathrooms, area, furnishing, locality_price]])
 
-    # ── Point prediction ────────────────────────────────────────────────────
     log_pred  = model.predict(X)[0]
     predicted = int(np.expm1(log_pred))
 
-    # ── Improvement 4: Tight interval via boosting-round variance ──────────
-    n_rounds = model.n_estimators
-    step     = max(1, n_rounds // 30)   # sample 30 checkpoints
-    preds    = []
-    for i in range(step, n_rounds + 1, step):
-        p = model.predict(X, iteration_range=(0, i))
-        preds.append(int(np.expm1(p[0])))
+    # ── Price range: MAE expressed as a % of this specific prediction ──────
+    error_pct = mae / max(predicted, 1)   # relative error for this prediction
+    error_pct = min(error_pct, 0.5)        # cap at ±50% to avoid absurd ranges
 
-    preds = np.array(preds)
-    low   = max(0, int(np.percentile(preds, 10)))
-    high  = int(np.percentile(preds, 90))
+    low  = max(0, int(predicted * (1 - error_pct)))
+    high = int(predicted * (1 + error_pct))
 
-    # Confidence based on R²
     if r2 >= 0.80:
         confidence = "high"
     elif r2 >= 0.65:

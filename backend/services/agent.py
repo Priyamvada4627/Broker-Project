@@ -1,7 +1,7 @@
-
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend import models
+
 
 def get_platform_agent(db: Session, city: str = None) -> models.Agent:
     if city:
@@ -9,7 +9,11 @@ def get_platform_agent(db: Session, city: str = None) -> models.Agent:
         agent = (
             db.query(models.Agent)
             .filter(models.Agent.city.ilike(f"%{city}%"))
-            .outerjoin(models.Deal, models.Deal.agent_id == models.Agent.id)
+            .outerjoin(
+                models.Deal,
+                (models.Deal.agent_id == models.Agent.id) &
+                models.Deal.status.notin_(["completed", "cancelled"])
+            )
             .group_by(models.Agent.id)
             .order_by(func.count(models.Deal.id).asc())
             .first()

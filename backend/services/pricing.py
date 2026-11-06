@@ -12,8 +12,23 @@ def get_accepted_amount(interest):
     raise ValueError("Interest not agreed")
 
 
+def compute_agent_fee(price: int, agent) -> int:
+    if not agent or getattr(agent, "fee_percent", None) is None:
+        return 0
+
+    percent_fee = int(price * agent.fee_percent / 100)
+
+    if agent.min_fee is not None and percent_fee < agent.min_fee:
+        return agent.min_fee
+
+    if agent.max_fee is not None and percent_fee > agent.max_fee:
+        return agent.max_fee
+
+    return percent_fee
+
+
 def compute_money_view(base_amount: int, agent):
-    agent_fee = int(base_amount * agent.fee_percent / 100)
+    agent_fee = compute_agent_fee(base_amount, agent)
     return {
         "buyer_pays": base_amount + agent_fee,
         "seller_gets": base_amount - agent_fee,
@@ -29,17 +44,3 @@ def get_effective_price(property_price: int, interest) -> int:
         return interest.counter_amount
 
     return property_price
-
-def compute_agent_fee(price: int, agent) -> int:
-    if not agent:
-        return 0
-
-    percent_fee = int(price * agent.fee_percent / 100)
-
-    if percent_fee < agent.min_fee:
-        return agent.min_fee
-
-    if percent_fee > agent.max_fee:
-        return agent.max_fee
-
-    return percent_fee

@@ -33,10 +33,11 @@ app.include_router(deal.router)
 app.include_router(document.router)
 app.include_router(ml.router)
 
-models.Base.metadata.create_all(bind=engine)
+IS_TESTING = os.getenv("TESTING") == "True"
 
-# Load ML models into memory on startup
-load_models()
+if not IS_TESTING:
+    models.Base.metadata.create_all(bind=engine)
+    load_models()
 
 
 def delete_expired_properties():
@@ -100,8 +101,9 @@ def retrain_ml_models():
                 "city": city,
                 "property_type": prop.property_type.value if hasattr(prop.property_type, 'value') else str(prop.property_type),
                 "purpose": prop.purpose.value if hasattr(prop.purpose, 'value') else str(prop.purpose),
-                "bedrooms": 2,       # default — bedrooms not in your schema yet
-                "area": 1000.0,      # default — area not in your schema yet
+                "bedrooms": prop.bedrooms if prop.bedrooms is not None else 2,
+                "bathrooms": prop.bathrooms if prop.bathrooms is not None else 2,
+                "area": prop.area if prop.area is not None else 1000.0,
                 "price": prop.price,
             })
 
@@ -115,15 +117,14 @@ def retrain_ml_models():
         db.close()
 
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(delete_expired_properties, 'interval', hours=24)
-scheduler.add_job(delete_expired_documents, 'interval', hours=24)
-scheduler.add_job(retrain_ml_models, 'interval', hours=24)
-scheduler.start()
-
+if not IS_TESTING:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(delete_expired_properties, 'interval', hours=24)
+    scheduler.add_job(delete_expired_documents, 'interval', hours=24)
+    scheduler.add_job(retrain_ml_models, 'interval', hours=24)
+    scheduler.start()
 
 
 @app.get("/")
 def home():
     return {"status": "ok", "service": "backend API"}
-

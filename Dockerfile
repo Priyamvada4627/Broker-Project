@@ -12,6 +12,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./backend
+COPY alembic ./alembic
+COPY alembic.ini .
+COPY Scraped_Data.csv .
 
 EXPOSE 8000
 

@@ -1,13 +1,15 @@
 from .database import Base
-from sqlalchemy import Column,Integer,String,ForeignKey,Boolean,Float,UniqueConstraint,Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Float, UniqueConstraint, Enum
 from sqlalchemy.sql.sqltypes import TIMESTAMP
-from sqlalchemy.sql.expression import text
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
+
 
 class PropertyPurpose(str, enum.Enum):
     buy = "buy"
     rent = "rent"
+
 
 class PropertyType(str, enum.Enum):
     apartment = "apartment"
@@ -16,15 +18,16 @@ class PropertyType(str, enum.Enum):
     plot = "plot"
     commercial = "commercial"
 
+
 class User(Base):
-    __tablename__="users"
-    id= Column(Integer,primary_key=True,nullable=False)
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, nullable=False)
     role = Column(String, nullable=False, default="customer")
 
-    email=Column(String,nullable=False,unique=True)
-    password=Column(String,nullable=False)
-    created_at=Column(TIMESTAMP(timezone=True),nullable=False,server_default=text("now()"))
-    phone=Column(String,nullable=False,unique=True)
+    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    phone = Column(String, nullable=False, unique=True)
 
 
 class Location(Base):
@@ -38,7 +41,7 @@ class Location(Base):
 
 class Property(Base):
     __tablename__ = "properties"
-    
+
     id = Column(Integer, primary_key=True, nullable=False)
     description = Column(String, nullable=False)
     price = Column(Integer, nullable=False)
@@ -46,13 +49,13 @@ class Property(Base):
     property_type = Column(Enum(PropertyType), nullable=False)
     is_available = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     seller_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     verification_deadline = Column(TIMESTAMP(timezone=True), nullable=True)
     is_modified = Column(Boolean, default=False)
-    remarks = Column(String, nullable=True)  
-    verification_status = Column(String, default="pending") 
+    remarks = Column(String, nullable=True)
+    verification_status = Column(String, default="pending")
     agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
     agent_rel = relationship("Agent", foreign_keys=[agent_id])
     bedrooms = Column(Integer, nullable=True)
@@ -60,11 +63,12 @@ class Property(Base):
     area = Column(Float, nullable=True)
     location = relationship("Location")
     interests = relationship("Interest", back_populates="property")
+
+
 class Interest(Base):
     __tablename__ = "interests"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    
     counter_amount = Column(Integer, nullable=True)
 
     property_id = Column(
@@ -79,7 +83,7 @@ class Interest(Base):
         nullable=False
     )
 
-    bid_amount = Column(Integer, nullable=True)  
+    bid_amount = Column(Integer, nullable=True)
     message = Column(String, nullable=True)
     agent_id = Column(Integer, ForeignKey("agents.id"), nullable=False, default=1)
     status = Column(
@@ -87,18 +91,19 @@ class Interest(Base):
         nullable=False,
         default="pending"
     )
-    # pending | accepted | rejected | negotiated
 
     created_at = Column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()")
+        server_default=func.now()
     )
     property = relationship("Property", back_populates="interests")
     __table_args__ = (
         UniqueConstraint('buyer_id', 'property_id', name='uq_buyer_property'),
     )
     agent = relationship("Agent")
+
+
 class Agent(Base):
     __tablename__ = "agents"
 
@@ -112,18 +117,19 @@ class Agent(Base):
     created_at = Column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()")
+        server_default=func.now()
     )
+
 
 class Deal(Base):
     __tablename__ = "deals"
 
     id = Column(Integer, primary_key=True)
 
-    interest_id = Column(Integer, ForeignKey("interests.id"),unique=True )
+    interest_id = Column(Integer, ForeignKey("interests.id"), unique=True)
     buyer_id = Column(Integer, ForeignKey("users.id"))
     seller_id = Column(Integer, ForeignKey("users.id"))
-    property_id = Column(Integer, ForeignKey("properties.id"),unique=True)
+    property_id = Column(Integer, ForeignKey("properties.id"), unique=True)
     agent_id = Column(Integer, ForeignKey("agents.id"))
 
     seller_price = Column(Integer, nullable=False)
@@ -133,7 +139,7 @@ class Deal(Base):
     created_at = Column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()")
+        server_default=func.now()
     )
 
 
@@ -146,12 +152,12 @@ class DealDocument(Base):
     status = Column(String, nullable=False, default="pending")
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_url = Column(String, nullable=False)
-    cloudinary_public_id = Column(String, nullable=True)   # for deletion via Cloudinary API
+    cloudinary_public_id = Column(String, nullable=True)
     verified_by = Column(Integer, ForeignKey("agents.id"), nullable=True)
     notes = Column(String, nullable=True)
     reupload_deadline = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        server_default=text("now()")
+        server_default=func.now()
     )

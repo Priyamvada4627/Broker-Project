@@ -29,7 +29,7 @@ def create_interest(
         raise HTTPException(status_code=404, detail="Property not available")
     if property.seller_id == current_user.id:
         raise HTTPException(status_code=403, detail="You cannot bid on your own property")
-    agent=agent=db.query(models.Agent).filter(models.Agent.id==property.agent_id).first()
+    agent = db.query(models.Agent).filter(models.Agent.id == property.agent_id).first()
     new_interest = models.Interest(
         property_id=property_id,
         buyer_id=current_user.id,
@@ -91,10 +91,16 @@ def update_interest(
 
     property_obj = db.query(models.Property).filter(
         models.Property.id == interest.property_id
-    ).first()
+    ).with_for_update().first()
 
     if not property_obj:
         raise HTTPException(404, "Property not found")
+
+    if not property_obj.is_available:
+        raise HTTPException(
+            status_code=400,
+            detail="This property is no longer available as a deal has already been finalized."
+        )
 
     if interest.status in ("accepted", "agreed", "rejected", "withdrawn"):
         raise HTTPException(

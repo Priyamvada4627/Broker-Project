@@ -126,14 +126,20 @@ def add_property(
     db: Session = Depends(get_db),
     current_user=Depends(oauth2.get_current_user)
 ):
-    location = models.Location(
-        city=property.city,
-        state=property.state,
-        pincode=property.pincode
-    )
-    db.add(location)
-    db.commit()
-    db.refresh(location)
+    # ── Location Deduplication & Atomic Transaction ──
+    location = db.query(models.Location).filter(
+        models.Location.city.ilike(property.city.strip()),
+        models.Location.pincode == property.pincode.strip()
+    ).first()
+
+    if not location:
+        location = models.Location(
+            city=property.city.strip().title(),
+            state=property.state.strip().title(),
+            pincode=property.pincode.strip()
+        )
+        db.add(location)
+        db.flush()
 
     new_property = models.Property(
         seller_id=current_user.id,
@@ -146,7 +152,6 @@ def add_property(
         is_available=property.is_available,
         is_modified=False,
         verification_deadline=datetime.now(timezone.utc) + timedelta(days=10),
-        
         bedrooms=property.bedrooms,
         bathrooms=property.bathrooms,
         area=property.area

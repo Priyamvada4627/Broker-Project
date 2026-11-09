@@ -131,3 +131,35 @@ def test_buyer_duplicate_bid_rejected(client, test_user, test_user2, auth_header
     second_bid = client.post(f"/bid/{prop_id}", headers=auth_headers_buyer, json={"bid_amount": 460000})
     assert second_bid.status_code == 409
     assert "already placed a bid" in second_bid.json()["detail"].lower()
+
+
+
+def test_cannot_act_on_unavailable_property(client, test_user, test_user2, test_user3, auth_headers, auth_headers_buyer, auth_headers_buyer2):
+    # 1. Seller lists property
+    res = client.post("/properties/add", headers=auth_headers, json={
+        "description": "Property for availability race condition test",
+        "city": "Delhi",
+        "state": "Delhi",
+        "pincode": "110001",
+        "price": 500000,
+        "property_type": "apartment",
+        "purpose": "buy",
+        "is_available": True
+    })
+    prop_id = res.json()["id"]
+
+    # 2. Both buyers place bids
+    b1 = client.post(f"/bid/{prop_id}", headers=auth_headers_buyer, json={"bid_amount": 480000})
+    b2 = client.post(f"/bid/{prop_id}", headers=auth_headers_buyer2, json={"bid_amount": 490000})
+    interest1_id = b1.json()["interest_id"]
+    interest2_id = b2.json()["interest_id"]
+
+    # 3. Seller accepts Buyer 1's bid -> property is marked is_available = False!
+    accept_res = client.patch(f"/bid/{interest1_id}", headers=auth_headers, json={"action": "accept_bid"})
+    assert accept_res.status_code == 200
+
+    # 4. Buyer 2 attempts to act on the interest for the sold property -> 400 Bad Request
+    res2 = client.patch(f"/bid/{interest2_id}", headers=auth_headers_buyer2, json={"action": "withdraw"})
+    assert res2.status_code == 400
+    detail = res2.json()["detail"].lower()
+    assert "no longer available" in detail or "finalized" in detail

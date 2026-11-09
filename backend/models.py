@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Float, UniqueConstraint, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Float, UniqueConstraint, Enum, Index
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -34,7 +34,7 @@ class Location(Base):
     __tablename__ = "locations"
 
     id = Column(Integer, primary_key=True)
-    city = Column(String, nullable=False)
+    city = Column(String, nullable=False, index=True)
     state = Column(String, nullable=False)
     pincode = Column(String, nullable=False)
 
@@ -50,19 +50,23 @@ class Property(Base):
     is_available = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
-    seller_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+    seller_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=True, index=True)
     verification_deadline = Column(TIMESTAMP(timezone=True), nullable=True)
     is_modified = Column(Boolean, default=False)
     remarks = Column(String, nullable=True)
     verification_status = Column(String, default="pending")
-    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True, index=True)
     agent_rel = relationship("Agent", foreign_keys=[agent_id])
     bedrooms = Column(Integer, nullable=True)
     bathrooms = Column(Integer, nullable=True)
     area = Column(Float, nullable=True)
     location = relationship("Location")
     interests = relationship("Interest", back_populates="property")
+
+    __table_args__ = (
+        Index('ix_properties_search', 'is_available', 'purpose', 'price'),
+    )
 
 
 class Interest(Base):
@@ -140,6 +144,10 @@ class Deal(Base):
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index('ix_deals_agent_status', 'agent_id', 'status'),
     )
 
 

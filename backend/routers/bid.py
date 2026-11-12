@@ -1,26 +1,25 @@
-from fastapi import APIRouter,Response,status,HTTPException,Depends,Query
-from ..schemas import Property,bid
+from fastapi import APIRouter, Response, status, HTTPException, Depends, Query
+from ..schemas import Property, bid
 from ..database import get_db
-from sqlalchemy.orm import Session
-from .. import models,oauth2
-from typing import List,Optional
-from backend.services import pricing,deal
+from sqlalchemy.orm import Session, joinedload
+from .. import models, oauth2
+from typing import List, Optional
+from backend.services import pricing, deal
 from backend.services.agent import get_platform_agent
 from ..services.ml import predict_price
 from ..services.cache import invalidate_properties_cache
 from sqlalchemy.exc import IntegrityError
+
 router = APIRouter(
     prefix="/bid",
     tags=["Bid"]
 )
 
 
-
-
 @router.post("/{property_id}", status_code=201)
 def create_interest(
     property_id: int,
-    interest: bid.InterestCreate,  
+    interest: bid.InterestCreate,
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user)
 ):
@@ -36,10 +35,8 @@ def create_interest(
         buyer_id=current_user.id,
         bid_amount=interest.bid_amount,
         message=interest.message,
-        agent_id=agent.id   
+        agent_id=agent.id
     )
-
-    
 
     try:
         db.add(new_interest)
@@ -48,7 +45,6 @@ def create_interest(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="You have already placed a bid on this property")
-
 
     estimate = predict_price(
         city=property.location.city if property.location else "",
@@ -63,17 +59,11 @@ def create_interest(
         if diff_pct > 30:
             warning = f"Your bid is {diff_pct:.0f}% away from the estimated fair price of ₹{estimated:,}"
 
-# then in the return:
     return {
         "message": "Interest submitted successfully",
         "interest_id": new_interest.id,
         "ml_warning": warning   # None if bid is reasonable
     }
-   
-
-
-
-
 
 
 @router.patch("/{interest_id}")
@@ -135,10 +125,9 @@ def update_interest(
             raise HTTPException(403, "Not allowed")
 
         if payload.action == "accept_bid":
-            
             if interest.status != "pending":
                 raise HTTPException(400, "Cannot accept now")
-   
+
             if interest.bid_amount is None:
                 raise HTTPException(400, "Cannot accept a bid with no bid amount")
 
@@ -181,35 +170,29 @@ def update_interest(
     return {"status": interest.status}
 
 
-
 @router.get("/buyer", response_model=list[bid.BuyerInterestOut])
 def get_buyer_interests(
     db: Session = Depends(get_db),
-    current_user = Depends(oauth2.get_current_user),
+    current_user=Depends(oauth2.get_current_user),
 ):
-   
-    #  Fetch buyer interests
+    # Fetch buyer interests with eager-loaded property and agent to prevent N+1 queries
     interests = (
         db.query(models.Interest)
+        .options(joinedload(models.Interest.property), joinedload(models.Interest.agent))
         .filter(models.Interest.buyer_id == current_user.id)
         .order_by(models.Interest.created_at.desc())
         .all()
     )
-    
+
     response = []
 
     for interest in interests:
-        prop = db.query(models.Property).filter(
-            models.Property.id == interest.property_id
-        ).first()
-        agent=agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
+        prop = interest.property
+        agent = interest.agent
         if not prop:
             continue  # safety
 
-        #  Seller-driven price
         effective_price = pricing.get_effective_price(prop.price, interest)
-
-        #  Agent fee on effective price
         agent_fee = pricing.compute_agent_fee(effective_price, agent)
 
         response.append({
@@ -224,20 +207,16 @@ def get_buyer_interests(
     return response
 
 
-
-
-
 @router.get("/seller", response_model=list[bid.SellerInterestOut])
 def get_seller_interests(
     db: Session = Depends(get_db),
-    current_user = Depends(oauth2.get_current_user),
+    current_user=Depends(oauth2.get_current_user),
 ):
-    
-
-    # 2. Fetch interests on seller's properties
+    # Fetch interests on seller's properties with eager-loaded relations
     interests = (
         db.query(models.Interest)
         .join(models.Property, models.Property.id == models.Interest.property_id)
+        .options(joinedload(models.Interest.property), joinedload(models.Interest.agent))
         .filter(models.Property.seller_id == current_user.id)
         .order_by(models.Interest.created_at.desc())
         .all()
@@ -246,12 +225,9 @@ def get_seller_interests(
     response = []
 
     for interest in interests:
-        prop = interest.property  # already joined
-        agent=db.query(models.Agent).filter(models.Agent.id==interest.agent_id).first()
-        # 3. Seller-driven price
+        prop = interest.property
+        agent = interest.agent
         effective_price = pricing.get_effective_price(prop.price, interest)
-
-        # 4. Agent fee
         agent_fee = pricing.compute_agent_fee(effective_price, agent)
 
         response.append({

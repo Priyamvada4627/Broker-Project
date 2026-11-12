@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .database import engine, SessionLocal
 from . import models
@@ -7,37 +8,6 @@ from .services.ml import load_models
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timezone
 from fastapi.middleware.cors import CORSMiddleware
-
-
-app = FastAPI()
-
-# Comma-separated list of allowed frontend origins, e.g.
-#   ALLOWED_ORIGINS=https://your-app.vercel.app,http://localhost:3000
-# Falls back to "*" (any origin) if not set.
-_allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
-origins = [o.strip() for o in _allowed_origins.split(",")] if _allowed_origins != "*" else ["*"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,  # we use Bearer tokens, not cookies, so this can stay False
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-app.include_router(user.router)
-app.include_router(auth.router)
-app.include_router(property.router)
-app.include_router(bid.router)
-app.include_router(agent.router)
-app.include_router(deal.router)
-app.include_router(document.router)
-app.include_router(ml.router)
-
-IS_TESTING = os.getenv("TESTING") == "True"
-
-if not IS_TESTING:
-    models.Base.metadata.create_all(bind=engine)
-    load_models()
 
 
 def delete_expired_properties():
@@ -117,12 +87,46 @@ def retrain_ml_models():
         db.close()
 
 
-if not IS_TESTING:
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(delete_expired_properties, 'interval', hours=24)
-    scheduler.add_job(delete_expired_documents, 'interval', hours=24)
-    scheduler.add_job(retrain_ml_models, 'interval', hours=24)
-    scheduler.start()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    is_testing = os.getenv("TESTING") == "True"
+    scheduler = None
+    if not is_testing:
+        models.Base.metadata.create_all(bind=engine)
+        load_models()
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(delete_expired_properties, 'interval', hours=24)
+        scheduler.add_job(delete_expired_documents, 'interval', hours=24)
+        scheduler.add_job(retrain_ml_models, 'interval', hours=24)
+        scheduler.start()
+    yield
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+
+
+app = FastAPI(lifespan=lifespan)
+
+# Comma-separated list of allowed frontend origins, e.g.
+#   ALLOWED_ORIGINS=https://your-app.vercel.app,http://localhost:3000
+# Falls back to "*" (any origin) if not set.
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+origins = [o.strip() for o in _allowed_origins.split(",")] if _allowed_origins != "*" else ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,  # we use Bearer tokens, not cookies, so this can stay False
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(user.router)
+app.include_router(auth.router)
+app.include_router(property.router)
+app.include_router(bid.router)
+app.include_router(agent.router)
+app.include_router(deal.router)
+app.include_router(document.router)
+app.include_router(ml.router)
 
 
 @app.get("/")

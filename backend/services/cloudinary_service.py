@@ -1,3 +1,4 @@
+import asyncio
 import cloudinary
 import cloudinary.uploader
 from ..config import settings
@@ -31,6 +32,16 @@ def upload_verification_file(file_bytes: bytes, filename: str, deal_id: int) -> 
     }
 
 
+async def upload_verification_file_async(file_bytes: bytes, filename: str, deal_id: int) -> dict:
+    """Non-blocking async wrapper that runs Cloudinary upload in a thread pool."""
+    return await asyncio.to_thread(upload_verification_file, file_bytes, filename, deal_id)
+
+
 def delete_verification_file(public_id: str) -> None:
     """Delete a previously uploaded verification document from Cloudinary."""
     cloudinary.uploader.destroy(public_id, resource_type="auto")
+
+
+async def delete_verification_file_async(public_id: str) -> None:
+    """Non-blocking async wrapper for deleting a Cloudinary file."""
+    await asyncio.to_thread(delete_verification_file, public_id)

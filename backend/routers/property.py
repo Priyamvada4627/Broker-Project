@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response, status, HTTPException, Depends, Query
 from ..schemas import Property, bid
 from ..database import get_db
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from .. import models, oauth2
 from typing import List, Optional
 from ..services.pricing import compute_agent_fee
@@ -46,7 +46,10 @@ def get_all_property(
     if cached_data is not None:
         return cached_data
 
-    query = db.query(models.Property)
+    query = db.query(models.Property).options(
+        joinedload(models.Property.location),
+        joinedload(models.Property.agent_rel),
+    )
 
     if city:
         query = query.join(models.Location, models.Location.id == models.Property.location_id).filter(models.Location.city.ilike(f"%{city}%"))
@@ -68,7 +71,7 @@ def get_all_property(
     response = []
 
     for prop in properties:
-        agent = db.query(models.Agent).filter(models.Agent.id == prop.agent_id).first()
+        agent = prop.agent_rel
         agent_fee = compute_agent_fee(prop.price, agent)
 
         response.append({
@@ -94,7 +97,10 @@ def get_my_properties(
     is_available: bool | None = None,
 ):
     query = (
-        db.query(models.Property)
+        db.query(models.Property).options(
+            joinedload(models.Property.location),
+            selectinload(models.Property.interests),
+        )
         .filter(models.Property.seller_id == current_user.id)
     )
 
@@ -111,7 +117,15 @@ def get_property(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user)
 ):
-    prop = db.query(models.Property).filter(models.Property.id == id).first()
+    prop = (
+        db.query(models.Property)
+        .options(
+            joinedload(models.Property.location),
+            joinedload(models.Property.agent_rel),
+        )
+        .filter(models.Property.id == id)
+        .first()
+    )
 
     if not prop:
         raise HTTPException(
@@ -119,7 +133,7 @@ def get_property(
             detail=f"property with id: {id} was not found"
         )
 
-    agent = db.query(models.Agent).filter(models.Agent.id == prop.agent_id).first()
+    agent = prop.agent_rel
     agent_fee = compute_agent_fee(prop.price, agent)
 
     ml_estimate = predict_price(

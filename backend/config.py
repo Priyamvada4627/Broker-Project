@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     cloudinary_cloud_name: str = "test_cloud"
     cloudinary_api_key: str = "test_key"
     cloudinary_api_secret: str = "test_secret"
+    redis_url: str = "redis://localhost:6379"
 
     model_config = {
         "env_file": ".env",

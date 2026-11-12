@@ -8,6 +8,12 @@ from ..services.pricing import compute_agent_fee
 from ..services.agent import get_platform_agent
 from datetime import datetime, timedelta, timezone
 from ..services.ml import predict_price
+from ..services.cache import (
+    build_property_cache_key,
+    get_cache,
+    set_cache,
+    invalidate_properties_cache,
+)
 
 router = APIRouter(
     prefix="/properties",
@@ -27,6 +33,19 @@ def get_all_property(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user)
 ):
+    cache_key = build_property_cache_key(
+        city=city,
+        purpose=purpose,
+        property_type=property_type,
+        price_min=price_min,
+        price_max=price_max,
+        limit=limit,
+        offset=offset,
+    )
+    cached_data = get_cache(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     query = db.query(models.Property)
 
     if city:
@@ -55,11 +74,16 @@ def get_all_property(
         response.append({
             "property_id": prop.id,
             "description": prop.description,
-            "location": prop.location,
+            "location": {
+                "city": prop.location.city if prop.location else "",
+                "state": prop.location.state if prop.location else "",
+                "pincode": prop.location.pincode if prop.location else "",
+            },
             "price_to_pay": prop.price + agent_fee,
             "is_available": prop.is_available
         })
 
+    set_cache(cache_key, response)
     return response
 
 
@@ -158,6 +182,7 @@ def add_property(
     )
     db.add(new_property)
     db.commit()
+    invalidate_properties_cache()
     db.refresh(new_property)
 
     estimate = predict_price(
@@ -224,6 +249,7 @@ def update_property(
     prop.verification_deadline = datetime.now(timezone.utc) + timedelta(days=5)
 
     db.commit()
+    invalidate_properties_cache()
     return {"message": "Property updated, resubmitted for verification"}
 
 
@@ -250,3 +276,4 @@ def delete_property(
 
     db.delete(prop)
     db.commit()
+    invalidate_properties_cache()

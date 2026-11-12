@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from .. import models, oauth2
 from ..schemas import deal
 from ..database import get_db
+from ..services.cache import invalidate_properties_cache
 
 router = APIRouter(
     prefix="/deals",
@@ -77,4 +78,5 @@ def complete_deal(
         property.is_available = False
 
     db.commit()
+    invalidate_properties_cache()
     return {"message": "Deal completed successfully", "deal_status": deal.status}

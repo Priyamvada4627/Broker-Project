@@ -7,6 +7,7 @@ from typing import List,Optional
 from backend.services import pricing,deal
 from backend.services.agent import get_platform_agent
 from ..services.ml import predict_price
+from ..services.cache import invalidate_properties_cache
 from sqlalchemy.exc import IntegrityError
 router = APIRouter(
     prefix="/bid",
@@ -174,6 +175,8 @@ def update_interest(
 
     db.commit()
     db.refresh(interest)
+    if interest.status in ("accepted", "agreed"):
+        invalidate_properties_cache()
 
     return {"status": interest.status}
 
